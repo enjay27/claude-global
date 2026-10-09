@@ -7,10 +7,11 @@
 # yours is in the way of the checkout. An existing ~/.claude/CLAUDE.md is kept as
 # ~/.claude/rules/local.md, a personal rule that is loaded but never tracked.
 #
-# Usage: bash local-setup.sh   (CLAUDE_GLOBAL_REMOTE overrides the repository, for tests)
+# Usage: bash local-setup.sh
+# For tests: CLAUDE_GLOBAL_HOME replaces the home folder, CLAUDE_GLOBAL_REMOTE the repository.
 set -u
 remote="${CLAUDE_GLOBAL_REMOTE:-https://github.com/enjay27/claude-global}"
-c="$HOME/.claude"
+c="${CLAUDE_GLOBAL_HOME:-$HOME}/.claude"
 mkdir -p "$c" && cd "$c" || exit 1
 
 fail() { echo "local-setup: $*" >&2; exit 1; }

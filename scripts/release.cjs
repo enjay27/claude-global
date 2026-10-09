@@ -11,8 +11,9 @@
 //       After the merge: checks that origin/main carries a stamp newer than every release, runs the
 //       tests on that commit, tags it and pushes the tag.
 //
-// Run from the development clone, never from ~/.claude. Tests for this file set RELEASE_DATE and
-// RELEASE_SKIP_TESTS.
+// Run from the development clone, never from ~/.claude. prepare runs the tests before it creates
+// anything, and on any failure returns to the branch it started from and deletes its release
+// branch. Tests for this file set RELEASE_DATE, RELEASE_SKIP_TESTS and RELEASE_FAIL_TESTS.
 "use strict";
 
 const fs = require("fs");
@@ -46,8 +47,13 @@ function today() {
 }
 
 function runTests() {
+  if (process.env.RELEASE_FAIL_TESTS) throw new Error("tests failed (RELEASE_FAIL_TESTS)");
   if (process.env.RELEASE_SKIP_TESTS) return;
-  execFileSync(process.execPath, ["--test"], { stdio: "inherit" });
+  try {
+    execFileSync(process.execPath, ["--test"], { stdio: "inherit" });
+  } catch {
+    throw new Error("tests failed; nothing was released");
+  }
 }
 
 function requireClean() {
@@ -59,18 +65,36 @@ function fetchMain() {
   return git("rev-parse", "FETCH_HEAD");
 }
 
+function startingPoint() {
+  try {
+    return git("symbolic-ref", "--short", "-q", "HEAD");
+  } catch {
+    return git("rev-parse", "HEAD");
+  }
+}
+
 function prepare(summary) {
   if (!summary) throw new Error('usage: release.cjs prepare "<what changed>"');
   requireClean();
+  const start = startingPoint();
   const main = fetchMain();
   const tag = nextTag(today(), git("tag", "-l", "v*").split("\n").filter(Boolean));
   const branch = `release/${tag}`;
-  git("checkout", "-q", "-b", branch, main);
-  if (!fs.existsSync("CLAUDE.md")) throw new Error("no CLAUDE.md on main; draft it first (plan step 3)");
-  fs.writeFileSync("CLAUDE.md", setStamp(fs.readFileSync("CLAUDE.md", "utf8"), tag));
-  runTests();
-  git("commit", "-q", "-am", `Release ${tag}: ${summary}`);
-  git("push", "-q", "-u", "origin", branch);
+  try {
+    git("checkout", "-q", "--detach", main);
+    if (!fs.existsSync("CLAUDE.md")) throw new Error("no CLAUDE.md on main; draft it first (plan step 3)");
+    runTests();
+    git("checkout", "-q", "-b", branch);
+    fs.writeFileSync("CLAUDE.md", setStamp(fs.readFileSync("CLAUDE.md", "utf8"), tag));
+    git("commit", "-q", "-am", `Release ${tag}: ${summary}`);
+    git("push", "-q", "-u", "origin", branch);
+  } catch (e) {
+    git("checkout", "-q", "-f", start);
+    try {
+      git("branch", "-D", branch);
+    } catch {}
+    throw e;
+  }
   const url = git("remote", "get-url", "origin").replace(/\.git$/, "");
   console.log(`Pushed ${branch}. Open and merge the pull request, then run: node scripts/release.cjs tag`);
   if (url.startsWith("https://github.com/")) console.log(`${url}/compare/${branch}?expand=1`);

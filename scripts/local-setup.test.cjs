@@ -1,7 +1,10 @@
 // Run: node --test scripts/local-setup.test.cjs
 // The local setup scripts (setup/local-setup.sh for macOS and Linux, setup/local-setup.ps1 for
-// Windows) against a local origin with two releases. The PowerShell cases run where `pwsh` is on
-// the PATH (GitHub's Ubuntu runners have it); Windows PowerShell 5.1 itself is not covered.
+// Windows) against a local origin with two releases. The scripts work on CLAUDE_GLOBAL_HOME, which
+// every case sets to a temporary folder: on Windows, PowerShell's $HOME ignores the HOME variable,
+// so pointing HOME elsewhere would not keep a test away from the real ~/.claude.
+// PowerShell cases run with `pwsh`, or on Windows with `powershell.exe` (5.1) when pwsh is absent.
+// The bash cases skip on Windows, where `bash` may be WSL's and drops the backslashes of a path.
 "use strict";
 
 const test = require("node:test");
@@ -12,14 +15,22 @@ const path = require("path");
 const { execFileSync, spawnSync } = require("child_process");
 
 const ROOT = path.join(__dirname, "..");
-const hasPwsh = spawnSync("pwsh", ["-NoLogo", "-NoProfile", "-Command", "exit 0"]).status === 0;
+const works = (cmd) => spawnSync(cmd, ["-NoLogo", "-NoProfile", "-Command", "exit 0"]).status === 0;
+const powershell = works("pwsh") ? "pwsh" : process.platform === "win32" && works("powershell.exe") ? "powershell.exe" : null;
 
 const SHELLS = [
-  { name: "local-setup.sh", run: (args) => ["bash", [path.join(ROOT, "setup", "local-setup.sh"), ...args]], skip: false },
+  {
+    name: "local-setup.sh",
+    run: (args) => ["bash", [path.join(ROOT, "setup", "local-setup.sh"), ...args]],
+    skip: process.platform === "win32" && "the macOS and Linux script",
+  },
   {
     name: "local-setup.ps1",
-    run: (args) => ["pwsh", ["-NoLogo", "-NoProfile", "-File", path.join(ROOT, "setup", "local-setup.ps1"), ...args]],
-    skip: !hasPwsh && "pwsh is not installed",
+    run: (args) => [
+      powershell,
+      ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", path.join(ROOT, "setup", "local-setup.ps1"), ...args],
+    ],
+    skip: !powershell && "no PowerShell",
   },
 ];
 
@@ -54,10 +65,11 @@ function origin() {
   return { remote: bare, home, c: path.join(home, ".claude") };
 }
 
-function setup(shell, w) {
+function setup(shell, w, env = {}) {
   const [cmd, args] = shell.run([]);
+  assert.ok(w.home.startsWith(os.tmpdir()), "a test never points the scripts at a real home folder");
   return spawnSync(cmd, args, {
-    env: { ...process.env, HOME: w.home, CLAUDE_GLOBAL_REMOTE: w.remote },
+    env: { ...process.env, CLAUDE_GLOBAL_HOME: w.home, CLAUDE_GLOBAL_REMOTE: w.remote, ...env },
     encoding: "utf8",
   });
 }
@@ -76,6 +88,18 @@ for (const shell of SHELLS) {
     assert.strictEqual(git(w.c, "status", "--short"), "");
     assert.strictEqual(read(w, ".credentials.json"), "secret");
     assert.ok(!fs.existsSync(path.join(w.c, "docs")));
+  });
+
+  test(`${shell.name}: works on CLAUDE_GLOBAL_HOME, never on HOME`, { skip: shell.skip }, () => {
+    const w = origin();
+    const other = fs.mkdtempSync(path.join(os.tmpdir(), "lsetup-home-"));
+    fs.mkdirSync(path.join(other, ".claude"));
+    fs.writeFileSync(path.join(other, ".claude", "CLAUDE.md"), "untouched\n");
+    const r = setup(shell, w, { HOME: other });
+    assert.strictEqual(r.status, 0, r.stdout + r.stderr);
+    assert.strictEqual(read(w, "CLAUDE.md").split("\n")[0], "Global rules: v2026.01.02");
+    assert.deepStrictEqual(fs.readdirSync(path.join(other, ".claude")), ["CLAUDE.md"]);
+    assert.strictEqual(fs.readFileSync(path.join(other, ".claude", "CLAUDE.md"), "utf8"), "untouched\n");
   });
 
   test(`${shell.name}: refuses a ~/.claude that is already a git repository`, { skip: shell.skip }, () => {
