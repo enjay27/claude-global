@@ -2,7 +2,11 @@
 
 - **Scope:** where Kade's coding and workflow conventions live, how they reach local and cloud
   sessions, and what each repository keeps for itself.
-- **Status:** accepted 2026-10-09 (decisions below). Steps 0 to 4 done the same day; step 5 next.
+- **Status:** accepted 2026-10-09 (decisions below). Steps 0 to 4 done the same day; release
+  `v2026.10.09.2` carries decision 5. **Next:** step 6 for `app`, `core`, `moderation` and
+  `.github` first (their "Author: Kade" lines override decision 5; `.github` goes as a zip),
+  then step 5. The cloud setup script's `ref` never needs bumping: `--install` and the hook
+  move to the latest release.
 - **Related:** `docs/refactor-plan.md` (the current setup), `claude-skills/docs/skills-improvement-plan.md`
   (what the account skills should say).
 - **Decisions (Kade, 2026-10-09):**
