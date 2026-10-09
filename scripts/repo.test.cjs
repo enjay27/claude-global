@@ -55,8 +55,25 @@ test("the setup script checks out exactly the allowed top-level paths", () => {
   }
 });
 
-test("CLAUDE.md, when present, starts with a release stamp", () => {
-  const file = path.join(ROOT, "CLAUDE.md");
-  if (!fs.existsSync(file)) return;
-  assert.ok(readStamp(fs.readFileSync(file, "utf8")), 'line 1 must be "Global rules: vYYYY.MM.DD"');
+test("CLAUDE.md starts with a release stamp and stays within 60 lines", () => {
+  const text = fs.readFileSync(path.join(ROOT, "CLAUDE.md"), "utf8");
+  assert.ok(readStamp(text), 'line 1 must be "Global rules: v<version>"');
+  const lines = text.trimEnd().split("\n").length;
+  assert.ok(lines <= 60, `CLAUDE.md is ${lines} lines; the cap is 60 (it is loaded in every session)`);
+});
+
+// The global rule on GitHub workflows, applied to this repository's own.
+test("workflows grant nothing at the top and keep no credentials after checkout", () => {
+  const dir = path.join(ROOT, ".github", "workflows");
+  for (const name of fs.readdirSync(dir)) {
+    const text = fs.readFileSync(path.join(dir, name), "utf8");
+    assert.match(text, /^permissions: \{\}$/m, `${name}: top-level "permissions: {}"`);
+    const checkouts = text.match(/uses: actions\/checkout@\S+[^]*?(?=\n\s*- |\n\S|$)/g) || [];
+    for (const step of checkouts) {
+      assert.match(step, /persist-credentials: false/, `${name}: actions/checkout needs persist-credentials: false`);
+    }
+    for (const [, ref] of text.matchAll(/uses: [\w.-]+\/[\w.-]+@(\S+)/g)) {
+      assert.match(ref, /^v\d+$/, `${name}: pin actions to a major version (got @${ref})`);
+    }
+  }
 });
