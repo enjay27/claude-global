@@ -6,7 +6,7 @@ For every repository of Kade's (`stella-rain`, `star-resonance`, `enjay27`), eve
 
 ## Precedence
 
-- Follow `kade-workflow` for procedures (PR description, state), `handoff-trigger` for handoffs.
+- Follow `repo-workflow` for procedures (PR description, state), `handoff-trigger` for handoffs.
 - A repository's `CLAUDE.md` wins over this file and the skill. It names each global rule it
   changes under "Overrides of global rules"; follow those and nothing else silently.
 

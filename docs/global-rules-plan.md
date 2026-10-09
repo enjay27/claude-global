@@ -14,6 +14,9 @@
   (enjay27/claude-skills#8, Kade's option B: no Graft hooks, MCP server or repository wiring).
   **Steps 0 to 6 are done.** Open: stella-rain/app#5 (steps 5 and 6). The cloud setup script's
   `ref` never needs bumping: `--install` and the hook move to the latest release.
+  On 2026-10-09 `kade-workflow` became `repo-workflow` and `graft-kade` became `code-graph`
+  (stella-rain/app#66, enjay27/claude-skills#10); text above and below written earlier keeps the
+  old names.
 - **Related:** `docs/refactor-plan.md` (the current setup), `claude-skills/docs/skills-improvement-plan.md`
   (what the account skills should say).
 - **Decisions (Kade, 2026-10-09):**
@@ -390,7 +393,7 @@ stamp, `Global rules: v<tag>`, so the answer is exact and also shows a stale che
   keeps the rest, so wiring another tool installs stays and fires in every repository. Found
   2026-10-09: `graft init` had left five Graft hooks, `~/.claude/helpers/graft-hooks.cjs` and a
   user-wide `graft` MCP server on the Mac, on top of the project copies (each message twice).
-  Mitigation: `graft-kade` names such leftovers and offers their removal; a one-off cleanup
+  Mitigation: `code-graph` names such leftovers and offers their removal; a one-off cleanup
   script for the Mac was delivered on 2026-10-09 (its run not yet confirmed). Nothing here
   checks for foreign entries.
 - **Always-on text costs attention.** Mitigation: the 60-line cap and a review of each line
