@@ -5,10 +5,9 @@
 - **Status:** accepted 2026-10-09 (decisions below). Steps 0 to 5 done the same day; release
   `v2026.10.09.2` carries decision 5 and `v2026.10.09.3` moves context-guard to user level.
   Step 6 is done for every repository's `CLAUDE.md` (the four Stella Rain repositories, whose
-  "Author: Kade" lines are gone, and `resonance-stream` and `resonance-lab`). **Next:** the
-  duplicates in the `kade-workflow` skill (in `claude-skills`), and moving the Repository Layout
-  out of `resonance-lab`'s `CLAUDE.md`, which is still 202 lines against the 100-line limit.
-  The cloud setup script's `ref` never needs bumping: `--install` and the hook move to the
+  "Author: Kade" lines are gone, and `resonance-stream` and `resonance-lab`). Both Resonance
+  files are also deduplicated, and `resonance-lab`'s is under the 100-line limit. **Next:** the
+  duplicates in the `kade-workflow` skill (in `claude-skills`). The cloud setup script's `ref` never needs bumping: `--install` and the hook move to the
   latest release.
 - **Related:** `docs/refactor-plan.md` (the current setup), `claude-skills/docs/skills-improvement-plan.md`
   (what the account skills should say).
@@ -335,8 +334,12 @@ exit 0
    `cc7fff0`). **Done for the Resonance repositories:** `resonance-stream`
    (star-resonance/resonance-stream#290, 93 to 87 lines, with its override: test first does not
    apply to `runbook/`) and `resonance-lab` (star-resonance/resonance-lab#85, 252 to 202 lines,
-   no override). **Left:** the duplicates in `kade-workflow`, and the `resonance-lab` layout move
-   (a move, not a cut, so its own PR).
+   no override). Then a dedupe pass on both: `resonance-lab` (star-resonance/resonance-lab#86,
+   202 to 88 lines: five restatements removed, then the layout moved to
+   `docs/repository-layout.md` and the tech stack and conventions to path-scoped rules, each
+   move byte for byte) and `resonance-stream` (star-resonance/resonance-stream#291, 87 to 81
+   lines: five restatements removed, no section moved). **Left:** the duplicates in
+   `kade-workflow`. Open: the path-scoped rules loading in a real session (stella-rain/app#5).
 
 ## 9. Open questions
 
