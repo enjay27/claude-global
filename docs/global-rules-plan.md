@@ -3,10 +3,11 @@
 - **Scope:** where Kade's coding and workflow conventions live, how they reach local and cloud
   sessions, and what each repository keeps for itself.
 - **Status:** accepted 2026-10-09 (decisions below). Steps 0 to 4 done the same day; release
-  `v2026.10.09.2` carries decision 5. **Next:** step 6 for `app`, `core`, `moderation` and
-  `.github` first (their "Author: Kade" lines override decision 5; `.github` goes as a zip),
-  then step 5. The cloud setup script's `ref` never needs bumping: `--install` and the hook
-  move to the latest release.
+  `v2026.10.09.2` carries decision 5. Step 6 is done for `app`, `core` and `moderation`
+  (their "Author: Kade" lines are gone); `.github` was delivered as a zip and waits for Kade's
+  commit. **Next:** step 5, then the rest of step 6 (`resonance-stream`, `resonance-lab`,
+  `kade-workflow`). The cloud setup script's `ref` never needs bumping: `--install` and the
+  hook move to the latest release.
 - **Related:** `docs/refactor-plan.md` (the current setup), `claude-skills/docs/skills-improvement-plan.md`
   (what the account skills should say).
 - **Decisions (Kade, 2026-10-09):**
@@ -318,7 +319,11 @@ exit 0
    repository in the same PR, so it never fires twice. One PR per repository.
 6. **Cut the duplicates** from repository `CLAUDE.md` files and `kade-workflow` once the global
    text is verified in a live cloud session, and add the "Overrides of global rules" section where
-   needed. One PR per repository.
+   needed. One PR per repository. **Done 2026-10-09 for the Stella Rain repositories:**
+   `app` (stella-rain/app#64, 99 to 87 lines), `core` (stella-rain/core#37, 100 to 87) and
+   `moderation` (stella-rain/moderation#3, 67 to 68, with its override: no auto-merge). The
+   `.github` change is a zip for Kade to commit (56 to 54 lines, same override); no PR exists
+   yet. **Left:** `resonance-stream`, `resonance-lab` and the duplicates in `kade-workflow`.
 
 ## 9. Open questions
 
