@@ -17,7 +17,7 @@ that move each repository onto them. Public. The account skills live in
 | `docs/global-rules-plan.md` | One global rule set checked out as `~/.claude` on every machine and in the cloud, plus rules per repository | Accepted; steps 0 to 4 done |
 | `docs/refactor-plan.md` | Moving `CLAUDE.md`, `MEMORY.md`, skills and rules to this setup, per repository | Read by the session doing the work |
 
-Each repository's `CLAUDE.md` keeps one line, *"Follow the `kade-workflow` skill"*, and its own
+Each repository's `CLAUDE.md` keeps one line, *"Follow the `repo-workflow` skill"*, and its own
 gates, paths and branch rules; nothing here holds repository-specific facts.
 
 ## Tests
