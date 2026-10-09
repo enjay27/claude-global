@@ -7,7 +7,7 @@ that move each repository onto them. Public. The account skills live in
 | Path | What | How it is used |
 |---|---|---|
 | `CLAUDE.md` | The global rules, loaded in every session as `~/.claude/CLAUDE.md`; line 1 is the release | Released with `scripts/release.cjs` |
-| `hooks/context-guard.cjs` | Warns at 200k tokens of context, recommends a handoff at 400k (never later than 40% / 60% of the window), and after a compaction | Copied into each repository's `.claude/hooks/`; merge `hooks/settings-snippet.json` into its `.claude/settings.json`. Moving to user level: see the plan below |
+| `hooks/context-guard.cjs` | Warns at 200k tokens of context, recommends a handoff at 400k (never later than 40% / 60% of the window), and after a compaction | User-level `UserPromptSubmit` and `SessionStart` (compact) hooks, registered from `settings.global.json`; repositories no longer vendor a copy |
 | `hooks/global-sync.cjs` | Keeps `~/.claude` on the latest release tag; prints the new rules into the session that moved | User-level `SessionStart` hook, registered from `settings.global.json` |
 | `settings.global.json` | The hook entries merged into `~/.claude/settings.json` (only entries pointing into `~/.claude/hooks/`) | Read by `global-sync` |
 | `deploy-exclude` | The allowlist for `~/.claude`: nothing else there can be tracked | Copied to `~/.claude/.git/info/exclude` |
@@ -26,13 +26,7 @@ gates, paths and branch rules; nothing here holds repository-specific facts.
 node --test        # every *.test.cjs: hooks, release script, repository checks
 ```
 
-## Installing the hook in a repository
-
-```bash
-mkdir -p .claude/hooks
-cp ~/claude-global/hooks/context-guard.cjs .claude/hooks/
-# merge hooks/settings-snippet.json into .claude/settings.json (keep existing hooks such as graft)
-```
+## The context hook
 
 The hook assumes a 1M window (the default of Opus 4.7+, Sonnet 5+ and the Fable models). Set
 `CLAUDE_CONTEXT_WINDOW=200000` for a 200k-window model; the lines then fall to 80k and 120k.
