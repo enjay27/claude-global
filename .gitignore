@@ -1,0 +1,3 @@
+node_modules/
+# machine-only rules in ~/.claude/rules/, never tracked
+rules/local*.md

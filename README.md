@@ -7,7 +7,12 @@ that move each repository onto them. Public. The account skills live in
 | Path | What | How it is used |
 |---|---|---|
 | `hooks/context-guard.cjs` | Warns at 200k tokens of context, recommends a handoff at 400k (never later than 40% / 60% of the window), and after a compaction | Copied into each repository's `.claude/hooks/`; merge `hooks/settings-snippet.json` into its `.claude/settings.json`. Moving to user level: see the plan below |
-| `docs/global-rules-plan.md` | One global rule set checked out as `~/.claude` on every machine and in the cloud, plus rules per repository | Proposed; steps wait for Kade |
+| `hooks/global-sync.cjs` | Keeps `~/.claude` on the latest release tag; prints the new rules into the session that moved | User-level `SessionStart` hook, registered from `settings.global.json` |
+| `settings.global.json` | The hook entries merged into `~/.claude/settings.json` (only entries pointing into `~/.claude/hooks/`) | Read by `global-sync` |
+| `deploy-exclude` | The allowlist for `~/.claude`: nothing else there can be tracked | Copied to `~/.claude/.git/info/exclude` |
+| `setup/cloud-setup.sh` | Checks this repository out into `~/.claude` in a cloud session | Pasted into the cloud environment's setup script |
+| `scripts/release.cjs` | `prepare "<what changed>"`, merge the PR, then `tag` | The only way to make a release |
+| `docs/global-rules-plan.md` | One global rule set checked out as `~/.claude` on every machine and in the cloud, plus rules per repository | Accepted; steps 0 to 2 done |
 | `docs/refactor-plan.md` | Moving `CLAUDE.md`, `MEMORY.md`, skills and rules to this setup, per repository | Read by the session doing the work |
 
 Each repository's `CLAUDE.md` keeps one line, *"Follow the `kade-workflow` skill"*, and its own
@@ -16,7 +21,7 @@ gates, paths and branch rules; nothing here holds repository-specific facts.
 ## Tests
 
 ```bash
-node --test hooks/context-guard.test.cjs
+node --test        # every *.test.cjs: hooks, release script, repository checks
 ```
 
 ## Installing the hook in a repository

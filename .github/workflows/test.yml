@@ -1,0 +1,25 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test
+      - name: The release tag equals the stamp in CLAUDE.md
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          stamp=$(head -n 1 CLAUDE.md)
+          test "$stamp" = "Global rules: $GITHUB_REF_NAME" || { echo "::error::$stamp, tag $GITHUB_REF_NAME"; exit 1; }

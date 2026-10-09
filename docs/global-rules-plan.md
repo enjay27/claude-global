@@ -2,7 +2,7 @@
 
 - **Scope:** where Kade's coding and workflow conventions live, how they reach local and cloud
   sessions, and what each repository keeps for itself.
-- **Status:** accepted 2026-10-09 (decisions below). Steps 0 and 1 done the same day; step 2 next.
+- **Status:** accepted 2026-10-09 (decisions below). Steps 0 to 2 done the same day; step 3 next.
 - **Related:** `docs/refactor-plan.md` (the current setup), `claude-skills/docs/skills-improvement-plan.md`
   (what the account skills should say).
 - **Decisions (Kade, 2026-10-09):**
@@ -117,7 +117,8 @@ claude-global/
     *.test.cjs
   settings.global.json    the hook entries that global-sync merges into ~/.claude/settings.json
   setup/cloud-setup.sh    the text pasted into the cloud environment's setup script
-  scripts/release.sh      sets the stamp in CLAUDE.md, commits, tags
+  scripts/release.cjs     prepare: stamp CLAUDE.md on a release branch; tag: tag the merged main
+  scripts/*.test.cjs      release tests; repository checks (allowlist, sparse list, stamp)
   docs/                   this plan, refactor-plan.md
   README.md
 ```
@@ -166,30 +167,49 @@ session reads its hooks at start.
 
 ## 6. Updates: `global-sync.cjs`
 
-Registered as a user-level `SessionStart` hook (matcher `startup`), timeout 10 seconds. It never
-fails a session: every path exits 0.
+Registered as a user-level `SessionStart` hook (matcher `startup`), timeout 30 seconds (each git
+call stops after 6, so a slow network cannot leave a half-done checkout). It never
+fails a session: every path exits 0. Built in step 2 (`hooks/global-sync.cjs`, 12 tests against
+real git repositories).
 
-1. `git ls-remote --tags origin 'v*'`: one small request; picks the highest tag.
-2. If it equals the checked-out tag: nothing to do.
-3. Otherwise: `git fetch --depth 1 origin tag <new>`, `git checkout --detach <new>`, merge
-   `settings.global.json`, and print the new `CLAUDE.md` to stdout with one line,
-   `Global rules updated v<old> -> v<new>; this text replaces the v<old> text loaded at start.`
-   Claude Code adds a `SessionStart` hook's stdout to the context, so the session already runs on
-   the new rules. (*Unverified:* whether a `CLAUDE.md` changed by the hook is reloaded anyway; if
-   it is, the print is dropped.)
-4. If the network fails: print `Global rules: could not check for updates; using
-   v<current>.` and stop.
+A release is a tag `vYYYY.MM.DD`, or `vYYYY.MM.DD.N` for a second one on the same day. The version
+in use is line 1 of `~/.claude/CLAUDE.md`, `Global rules: <tag>`; a line without a release (the
+step 1 probe's `v0-probe`, or none) counts as older than every release.
+
+1. `git ls-remote --tags --refs origin 'v*'`: one small request; the highest release tag wins, and
+   other tags (`v0.0.0-probe`, anything not numeric) are ignored.
+2. If it is not newer than the version in use: nothing to do, nothing printed. It never moves
+   backwards.
+3. Otherwise: `git fetch --depth 1 origin tag <new>`, `git checkout -f --detach <new>`, rewrite
+   `.git/info/exclude` from `deploy-exclude`, merge `settings.global.json`, and print
+   `Global rules updated <old> -> <new> at session start. The text below replaces the <old> global
+   rules loaded earlier in this session; ...` followed by the new `CLAUDE.md`. Claude Code adds a
+   `SessionStart` hook's stdout to the context, so the session runs on the new rules at once.
+   Still unverified: whether Claude Code also reloads the changed file; if it does, that one
+   session carries the text twice (~1,000 tokens), and the print can be dropped later.
+4. If anything fails: print `Global rules: could not check for updates; using <current>.` and stop.
+
+`--install` (setup) does the same update without printing to the session, and rewrites the exclude
+file and the settings even when nothing changed. Merging removes every hook entry whose command
+points into `~/.claude/hooks/`, from every event, then adds the ones in `settings.global.json`; it
+leaves every other key and hook alone, and an unreadable `settings.json` untouched.
 
 **A tag is a release.** Pushing `v2026.10.12` reaches every session at its next start, on every
 machine. So:
 
-- `scripts/release.sh` is the only way to tag: it writes the stamp into line 1 of `CLAUDE.md`,
-  runs the tests, commits, tags. A CI check on tag push fails when the stamp and the tag differ.
+- `scripts/release.cjs` is the only way to tag. `main` takes changes only through PRs, so it has
+  two phases. `prepare "<what changed>"` picks the next tag from today's date, writes it into
+  line 1 of `CLAUDE.md` on `release/<tag>`, runs all tests, commits and pushes; Kade merges the PR.
+  `tag` then checks that `origin/main` carries a stamp newer than every release, runs the tests on
+  that commit, tags it and pushes the tag. The stamp and the tag therefore cannot differ.
 - A tag ruleset on GitHub lets only Kade create `v*` tags, and `main` requires a PR.
 - `global-sync.cjs` is the one file whose bug could stop updates everywhere, since it updates
   itself. It stays small, has the most tests, and every release is first tried in one session
-  before Kade relies on it. Recovery by hand: `git -C ~/.claude checkout --detach <good tag>`
-  locally; bump the tag in the cloud setup script.
+  before Kade relies on it. Tags cannot be moved or deleted, so a bad release is fixed by a newer
+  one. If the bad one broke `global-sync` itself: locally, `git -C ~/.claude fetch --depth 1 origin
+  tag <fixed>` and `checkout -f --detach <fixed>` by hand; in the cloud, any edit to the setup
+  script reruns it, and it starts from `ref` with that release's working `global-sync`, which
+  moves to the fixed release.
 
 **Cloud caching.** The cloud caches the setup script's result and reruns it only when the script
 or the allowed hosts change, or after about seven days. Every cloud session therefore starts from
@@ -208,10 +228,10 @@ mkdir -p rules
 git init -q
 git remote add origin https://github.com/enjay27/claude-global
 git sparse-checkout set --no-cone /CLAUDE.md /rules/ /hooks/ /settings.global.json /.gitignore /.gitattributes
-git fetch --depth 1 origin tag v<latest>
-git checkout -q --detach v<latest>
+git fetch --depth 1 origin tag v<first release>
+git checkout -q --detach v<first release>
 git show HEAD:deploy-exclude > .git/info/exclude
-node hooks/global-sync.cjs --install      # registers itself and context-guard in settings.json
+node hooks/global-sync.cjs --install      # moves to the latest release, registers the hook
 ```
 
 On Windows, from Git Bash. `git init` in a folder that already has files is safe here: nothing
@@ -220,19 +240,16 @@ rewrites `.git/info/exclude` from `deploy-exclude` on every update.
 
 **Cloud, in the environment's setup script** (`setup/cloud-setup.sh`):
 
+The file is the source; paste it as it is. It starts from `ref` (the first release, set once in
+step 4), and `global-sync --install` then moves to the latest release, so later releases need no
+edit here. Its core:
+
 ```bash
-tag=v2026.10.09     # floor for new sessions; global-sync moves past it
-c="$HOME/.claude"
-mkdir -p "$c" && cd "$c" || exit 0
-[ -d .git ] || git init -q
-git remote get-url origin >/dev/null 2>&1 \
-  || git remote add origin https://github.com/enjay27/claude-global
-git sparse-checkout set --no-cone /CLAUDE.md /rules/ /hooks/ /settings.global.json /.gitignore /.gitattributes
-if git fetch -q --depth 1 origin tag "$tag" && git checkout -q --detach "$tag"; then
+if git fetch -q --depth 1 origin "$ref" && git checkout -q -f --detach FETCH_HEAD; then
   git show HEAD:deploy-exclude > .git/info/exclude
   node hooks/global-sync.cjs --install
 else
-  echo "GLOBAL RULES FAILED TO LOAD ($tag). Tell Kade before doing anything else." > CLAUDE.md
+  echo "GLOBAL RULES FAILED TO LOAD ($ref). Tell Kade before doing anything else." > CLAUDE.md
 fi
 exit 0
 ```
@@ -270,12 +287,16 @@ exit 0
 2. **Write `global-sync.cjs` test-first**, in the style of `context-guard.test.cjs`: same tag, new
    tag, fetch failure, settings merge keeps foreign keys, settings merge is
    idempotent, `--install` on an empty and on an existing `settings.json`. Plus the allowlist test
-   and the stamp test.
+   and the stamp test. **Done 2026-10-09:** `hooks/global-sync.cjs` (12 tests),
+   `scripts/release.cjs` (5), `scripts/repo.test.cjs` (3: allowlist, sparse list, stamp),
+   `settings.global.json` (global-sync only; context-guard joins in step 5), and the setup script
+   switched from the probe to `global-sync`. All 34 tests in the repository pass.
 3. **Draft the global `CLAUDE.md`**: the few rules that must always apply (coding conventions;
    the order plan, test, gate, commit; where state is recorded; the Windows shell traps), and a
    note on what each line replaced. List the candidates from repository `CLAUDE.md` files and
    `kade-workflow` first and let Kade confirm each. Under 60 lines.
-4. **First release** with `scripts/release.sh`; set up the PC, then the Mac (section 7).
+4. **First release** with `scripts/release.cjs`; set `ref` in the cloud setup script to it; set up
+   the PC, then the Mac (section 7).
 5. **Move context-guard to user level.** Change its paths from `$CLAUDE_PROJECT_DIR/.claude/hooks`
    to `$HOME/.claude/hooks`, then remove the vendored copy and its settings entry from each
    repository in the same PR, so it never fires twice. One PR per repository.
@@ -314,7 +335,7 @@ stamp, `Global rules: v<tag>`, so the answer is exact and also shows a stale che
 ## 11. Risks
 
 - **One tag reaches every session.** Mitigation: `main` needs a PR, only Kade can create `v*`
-  tags, `release.sh` runs the tests, and each release is tried in one session first.
+  tags, `release.cjs` runs the tests, and each release is tried in one session first.
 - **A bad `global-sync.cjs` cannot repair itself.** Mitigation: small file, most tests, the manual
   recovery in section 6, and the setup script's tag as a floor in the cloud.
 - **Private files from `~/.claude` pushed to a public repository.** Mitigation: the allowlist, the

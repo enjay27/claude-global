@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.claude/hooks/global-sync.cjs\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
