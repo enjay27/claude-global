@@ -26,7 +26,9 @@ For every repository of Kade's (`stella-rain`, `star-resonance`, `enjay27`), eve
 
 ## Git and pull requests
 
-- Author: `Kade <23338687+enjay27@users.noreply.github.com>`. No other email in commits or config.
+- Commits Claude makes are authored `Claude <noreply@anthropic.com>`; locally pass it per commit
+  (`git -c user.name=Claude -c user.email=noreply@anthropic.com commit`), never in git config.
+  PRs, issues and merges are Kade's: Claude opens them through his GitHub account.
 - Subject: the finding or the point of the change, not the files touched. Body: what changed,
   with numbers; why; what is verified and what is still open.
 - `git status` before `git add -A`, never after. Never commit work you did not do.

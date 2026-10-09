@@ -16,6 +16,10 @@
      opens, and the `main` ruleset's required check decides. Only people with write access can
      turn it on, and PRs from Kade's Claude sessions are authored by `enjay27`. Repositories with
      an auto-merge workflow (Stella Rain, Resonance) keep it for now.
+  5. Commits Claude makes are authored by Claude, in cloud and local sessions: the cloud platform
+     already sets that identity and signs with it, and a local session passes it per commit.
+     Kade authors the PRs, issues and merges, which Claude opens through his account. The
+     "Author: Kade" lines in `app`, `core`, `moderation` and `.github` are removed in step 6.
 - **Done:** step 0, 2026-10-09: this repository created; `hooks/` and the plans moved from
   `claude-skills` at `8a227ca`; secret scanning with push protection on; rulesets `main` (PR
   required, no bypass) and `release-tags` (`v*`, only the repository admin creates, nobody updates

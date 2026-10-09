@@ -15,7 +15,7 @@ and keeps only their overrides.
 | At most 2 self-corrections | resonance-stream, resonance-lab; `kade-workflow` 3 |
 | Refactors change no behaviour | resonance-stream, resonance-lab; `kade-workflow` 3 |
 | Gate for every part touched; `NOT VERIFIED` | app, core, resonance-stream, resonance-lab; `kade-workflow` 4 |
-| Author identity | app, core, moderation, .github |
+| Commit author: Claude; PRs, issues and merges: Kade | Kade, 2026-10-09: replaced "Author: Kade" from app, core, moderation, .github, whose own lines must go in step 6 or they keep overriding it |
 | Commit subject and body | app, core, resonance-lab; `kade-workflow` 5 |
 | `git status` before `git add -A`; never commit others' work | resonance-lab; `kade-workflow` 5 |
 | No half-applied tree; never rewrite pushed history | resonance-stream, resonance-lab |
