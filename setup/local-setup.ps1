@@ -9,11 +9,14 @@
 # hook entries of its own in ~/.claude/hooks/ (global-sync owns that folder), or if a file of
 # yours is in the way of the checkout. An existing ~/.claude/CLAUDE.md is kept as
 # ~/.claude/rules/local.md, a personal rule that is loaded but never tracked.
-# CLAUDE_GLOBAL_REMOTE overrides the repository, for tests. Written for Windows PowerShell 5.1.
+# For tests: CLAUDE_GLOBAL_HOME replaces the home folder, CLAUDE_GLOBAL_REMOTE the repository.
+# Written for Windows PowerShell 5.1.
 $ErrorActionPreference = 'Continue'
 $remote = 'https://github.com/enjay27/claude-global'
 if ($env:CLAUDE_GLOBAL_REMOTE) { $remote = $env:CLAUDE_GLOBAL_REMOTE }
-$c = Join-Path $HOME '.claude'
+$base = $HOME
+if ($env:CLAUDE_GLOBAL_HOME) { $base = $env:CLAUDE_GLOBAL_HOME }
+$c = Join-Path $base '.claude'
 New-Item -ItemType Directory -Force $c | Out-Null
 Set-Location $c
 
