@@ -6,9 +6,14 @@
   `v2026.10.09.2` carries decision 5 and `v2026.10.09.3` moves context-guard to user level.
   Step 6 is done for every repository's `CLAUDE.md` (the four Stella Rain repositories, whose
   "Author: Kade" lines are gone, and `resonance-stream` and `resonance-lab`). Both Resonance
-  files are also deduplicated, and `resonance-lab`'s is under the 100-line limit. **Next:** the
-  duplicates in the `kade-workflow` skill (in `claude-skills`). The cloud setup script's `ref` never needs bumping: `--install` and the hook move to the
-  latest release.
+  files are also deduplicated, and `resonance-lab`'s is under the 100-line limit. The
+  `kade-workflow` duplicates are cut too (enjay27/claude-skills#6, 103 to 65 lines), the context
+  budget is its own skill, `handoff-trigger` (enjay27/claude-skills#5), and the Precedence line
+  points at it (enjay27/claude-global#17, release `v2026.10.09.4`). `graft-kade` is kept in
+  `claude-skills` (enjay27/claude-skills#7) and runs Graft only through its `g` function
+  (enjay27/claude-skills#8, Kade's option B: no Graft hooks, MCP server or repository wiring).
+  **Steps 0 to 6 are done.** Open: stella-rain/app#5 (steps 5 and 6). The cloud setup script's
+  `ref` never needs bumping: `--install` and the hook move to the latest release.
 - **Related:** `docs/refactor-plan.md` (the current setup), `claude-skills/docs/skills-improvement-plan.md`
   (what the account skills should say).
 - **Decisions (Kade, 2026-10-09):**
@@ -323,8 +328,9 @@ exit 0
    (stella-rain/app#65), `core` (stella-rain/core#38) and `resonance-stream`
    (star-resonance/resonance-stream#289, which also dropped the CI step that ran the vendored
    test: the same test runs here). `moderation`, `.github`, `resonance-lab` and
-   `stage-template` never had a copy. Open: the hook firing at user level in a real session
-   (stella-rain/app#5).
+   `stage-template` never had a copy. The hook fires at user level in a cloud session: its
+   warning arrived at 214k tokens on 2026-10-09 (`UserPromptSubmit`). Open: the same on the PC
+   and the Mac (stella-rain/app#5).
 6. **Cut the duplicates** from repository `CLAUDE.md` files and `kade-workflow` once the global
    text is verified in a live cloud session, and add the "Overrides of global rules" section where
    needed. One PR per repository. **Done 2026-10-09 for the Stella Rain repositories:**
@@ -338,8 +344,10 @@ exit 0
    202 to 88 lines: five restatements removed, then the layout moved to
    `docs/repository-layout.md` and the tech stack and conventions to path-scoped rules, each
    move byte for byte) and `resonance-stream` (star-resonance/resonance-stream#291, 87 to 81
-   lines: five restatements removed, no section moved). **Left:** the duplicates in
-   `kade-workflow`. Open: the path-scoped rules loading in a real session (stella-rain/app#5).
+   lines: five restatements removed, no section moved). **Done 2026-10-09 for `kade-workflow`:**
+   103 to 65 lines (enjay27/claude-skills#6; scenarios S3, S4, S5 and S8 pass 8 of 8 before and
+   after, with the global file loaded). Open: the path-scoped rules loading in a real session
+   (stella-rain/app#5).
 
 ## 9. Open questions
 
@@ -378,6 +386,13 @@ stamp, `Global rules: v<tag>`, so the answer is exact and also shows a stale che
 - **Private files from `~/.claude` pushed to a public repository.** Mitigation: the allowlist, the
   test on it, secret scanning with push protection, and `~/.claude` is never a working copy:
   commits happen only in the development clone.
+- **Other tools write into `~/.claude`.** `global-sync` merges only its own hook entries and
+  keeps the rest, so wiring another tool installs stays and fires in every repository. Found
+  2026-10-09: `graft init` had left five Graft hooks, `~/.claude/helpers/graft-hooks.cjs` and a
+  user-wide `graft` MCP server on the Mac, on top of the project copies (each message twice).
+  Mitigation: `graft-kade` names such leftovers and offers their removal; a one-off cleanup
+  script for the Mac was delivered on 2026-10-09 (its run not yet confirmed). Nothing here
+  checks for foreign entries.
 - **Always-on text costs attention.** Mitigation: the 60-line cap and a review of each line
   against "would a missed rule cost a failed command or a wrong PR".
 
