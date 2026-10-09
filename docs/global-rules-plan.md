@@ -2,12 +2,11 @@
 
 - **Scope:** where Kade's coding and workflow conventions live, how they reach local and cloud
   sessions, and what each repository keeps for itself.
-- **Status:** accepted 2026-10-09 (decisions below). Steps 0 to 4 done the same day; release
-  `v2026.10.09.2` carries decision 5. Step 6 is done for `app`, `core` and `moderation`
-  (their "Author: Kade" lines are gone); `.github` was delivered as a zip and waits for Kade's
-  commit. **Next:** step 5, then the rest of step 6 (`resonance-stream`, `resonance-lab`,
-  `kade-workflow`). The cloud setup script's `ref` never needs bumping: `--install` and the
-  hook move to the latest release.
+- **Status:** accepted 2026-10-09 (decisions below). Steps 0 to 5 done the same day; release
+  `v2026.10.09.2` carries decision 5 and `v2026.10.09.3` moves context-guard to user level.
+  Step 6 is done for the four Stella Rain repositories (their "Author: Kade" lines are gone).
+  **Next:** the rest of step 6 (`resonance-stream`, `resonance-lab`, `kade-workflow`). The cloud
+  setup script's `ref` never needs bumping: `--install` and the hook move to the latest release.
 - **Related:** `docs/refactor-plan.md` (the current setup), `claude-skills/docs/skills-improvement-plan.md`
   (what the account skills should say).
 - **Decisions (Kade, 2026-10-09):**
@@ -316,14 +315,21 @@ exit 0
    the hook at the next session start. Setup scripts for both added afterwards, with 8 tests.
 5. **Move context-guard to user level.** Change its paths from `$CLAUDE_PROJECT_DIR/.claude/hooks`
    to `$HOME/.claude/hooks`, then remove the vendored copy and its settings entry from each
-   repository in the same PR, so it never fires twice. One PR per repository.
+   repository in the same PR, so it never fires twice. One PR per repository. **Done
+   2026-10-09:** the entries are in `settings.global.json` (enjay27/claude-global#12),
+   released as `v2026.10.09.3`; the vendored copies are gone from `app`
+   (stella-rain/app#65), `core` (stella-rain/core#38) and `resonance-stream`
+   (star-resonance/resonance-stream#289, which also dropped the CI step that ran the vendored
+   test: the same test runs here). `moderation`, `.github`, `resonance-lab` and
+   `stage-template` never had a copy. Open: the hook firing at user level in a real session
+   (stella-rain/app#5).
 6. **Cut the duplicates** from repository `CLAUDE.md` files and `kade-workflow` once the global
    text is verified in a live cloud session, and add the "Overrides of global rules" section where
    needed. One PR per repository. **Done 2026-10-09 for the Stella Rain repositories:**
    `app` (stella-rain/app#64, 99 to 87 lines), `core` (stella-rain/core#37, 100 to 87) and
-   `moderation` (stella-rain/moderation#3, 67 to 68, with its override: no auto-merge). The
-   `.github` change is a zip for Kade to commit (56 to 54 lines, same override); no PR exists
-   yet. **Left:** `resonance-stream`, `resonance-lab` and the duplicates in `kade-workflow`.
+   `moderation` (stella-rain/moderation#3, 67 to 68, with its override: no auto-merge) and
+   `.github` (56 to 54 lines, same override; delivered as a zip, Kade pushed it to `main` as
+   `cc7fff0`). **Left:** `resonance-stream`, `resonance-lab` and the duplicates in `kade-workflow`.
 
 ## 9. Open questions
 
