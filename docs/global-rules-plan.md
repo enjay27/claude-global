@@ -2,8 +2,10 @@
 
 - **Scope:** where Kade's coding and workflow conventions live, how they reach local and cloud
   sessions, and what each repository keeps for itself.
-- **Status:** accepted 2026-10-09 (decisions below). Steps 0 to 5 done the same day; release
-  `v2026.10.09.2` carries decision 5 and `v2026.10.09.3` moves context-guard to user level.
+- **Status:** **closed 2026-10-09 (Kade)**: every step is done. Still open, outside the plan:
+  stella-rain/app#5 (context-guard and path-scoped rules in a live session) and whether `paths:`
+  rules work at user level (section 9). Accepted 2026-10-09 (decisions below). Steps 0 to 5
+  done the same day; release `v2026.10.09.2` carries decision 5 and `v2026.10.09.3` moves context-guard to user level.
   Step 6 is done for every repository's `CLAUDE.md` (the four Stella Rain repositories, whose
   "Author: Kade" lines are gone, and `resonance-stream` and `resonance-lab`). Both Resonance
   files are also deduplicated, and `resonance-lab`'s is under the 100-line limit. The
