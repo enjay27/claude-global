@@ -1,0 +1,12 @@
+# Copied to ~/.claude/.git/info/exclude. ~/.claude also holds transcripts, history, caches and,
+# on Linux, login credentials: only the paths allowed below may ever be tracked there.
+*
+!.gitignore
+!.gitattributes
+!CLAUDE.md
+!rules/
+!rules/**
+rules/local*.md
+!hooks/
+!hooks/**
+!settings.global.json
