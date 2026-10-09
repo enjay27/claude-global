@@ -8,7 +8,7 @@ const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
-const { readStamp } = require("../hooks/global-sync.cjs");
+const { readStamp, mergeSettings } = require("../hooks/global-sync.cjs");
 
 const ROOT = path.join(__dirname, "..");
 // Tracked but never deployed: the sparse checkout in ~/.claude leaves these out.
@@ -76,4 +76,26 @@ test("workflows grant nothing at the top and keep no credentials after checkout"
       assert.match(ref, /^v\d+$/, `${name}: pin actions to a major version (got @${ref})`);
     }
   }
+});
+
+// Plan step 5: context-guard runs from ~/.claude/hooks for every repository, so settings.global.json
+// must register it, and every command must point there (global-sync owns what does).
+test("settings.global.json registers global-sync and context-guard from $HOME/.claude/hooks", () => {
+  const fragment = JSON.parse(fs.readFileSync(path.join(ROOT, "settings.global.json"), "utf8"));
+  const commands = (event, matcher) =>
+    (fragment.hooks[event] || [])
+      .filter((g) => g.matcher === matcher)
+      .flatMap((g) => g.hooks.map((h) => h.command));
+  assert.deepStrictEqual(commands("SessionStart", "startup"), ['node "$HOME/.claude/hooks/global-sync.cjs"']);
+  assert.deepStrictEqual(commands("SessionStart", "compact"), ['node "$HOME/.claude/hooks/context-guard.cjs"']);
+  assert.deepStrictEqual(commands("UserPromptSubmit", undefined), ['node "$HOME/.claude/hooks/context-guard.cjs"']);
+  for (const groups of Object.values(fragment.hooks)) {
+    for (const h of groups.flatMap((g) => g.hooks)) {
+      assert.match(h.command, /\$HOME\/\.claude\/hooks\//, `${h.command}: must point into ~/.claude/hooks`);
+      assert.ok(fs.existsSync(path.join(ROOT, "hooks", /hooks\/(\S+?)"/.exec(h.command)[1])), `${h.command}: no such hook`);
+    }
+  }
+  const once = mergeSettings({ hooks: { Stop: [{ hooks: [{ type: "command", command: "foreign" }] }] } }, fragment);
+  assert.deepStrictEqual(mergeSettings(structuredClone(once), fragment), once, "merging twice must change nothing");
+  assert.strictEqual(once.hooks.Stop.length, 1, "foreign hooks stay");
 });
