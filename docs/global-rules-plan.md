@@ -2,7 +2,7 @@
 
 - **Scope:** where Kade's coding and workflow conventions live, how they reach local and cloud
   sessions, and what each repository keeps for itself.
-- **Status:** accepted 2026-10-09 (decisions below). Step 0 done the same day; step 1 next.
+- **Status:** accepted 2026-10-09 (decisions below). Steps 0 and 1 done the same day; step 2 next.
 - **Related:** `docs/refactor-plan.md` (the current setup), `claude-skills/docs/skills-improvement-plan.md`
   (what the account skills should say).
 - **Decisions (Kade, 2026-10-09):**
@@ -254,7 +254,9 @@ exit 0
    `docs/global-rules-plan.md` and `docs/refactor-plan.md` from here, with a commit that names
    the source commit. Split the README. `claude-skills` keeps `skills/`, `scripts/` and the skill
    docs.
-1. **Prove the cloud** in a throwaway environment, before anything else depends on it:
+1. **Prove the cloud** in a throwaway environment, before anything else depends on it.
+   **Done 2026-10-09** on Stella Rain `core`: all checks passed (section 9); `git -C ~/.claude
+   status --short` printed nothing, so the platform's files stayed untracked. Checks:
    - the setup script above, with a test `CLAUDE.md`: `/context` lists `/root/.claude/CLAUDE.md`;
    - the platform's files in `~/.claude` are untouched, and `git status` there is clean;
    - a user-level `settings.json` written by the script is honoured: a test `SessionStart` hook
@@ -285,11 +287,11 @@ exit 0
 
 | Question | How to check | Status |
 |---|---|---|
-| Can the setup script fetch the repository? | Step 1 | Public, so an anonymous fetch; only the network allowlist can block it |
-| Does the cloud environment allow `github.com`? | Step 1 | Open |
-| Is `~/.claude/CLAUDE.md` read in a cloud session started after the script? | `/context`, step 1 | Docs: yes |
-| Do user-level `settings.json` hooks run in the cloud, next to the platform's own hooks? | Step 1 | Open; fallback in step 1 |
-| Can a hook reach `github.com` in the cloud? | Step 1 | Open |
+| Can the setup script fetch the repository? | Step 1 | **Yes** (2026-10-09): anonymous fetch of `claude/step1-cloud-probe` at `2dffd91` |
+| Does the cloud environment allow `github.com`? | Step 1 | **Yes**, with `github.com` allowed in the environment's network settings |
+| Is `~/.claude/CLAUDE.md` read in a cloud session started after the script? | Step 1 | **Yes**: the session quoted `Global rules: v0-probe` and named the file as the user's global instructions, next to the project's `CLAUDE.md`. `/context` is not available in cloud sessions, so the stamp is the check |
+| Do user-level `settings.json` hooks run in the cloud, next to the platform's own hooks? | Step 1 | **Yes**: the probe's `SessionStart` hook ran (`source=startup`); the per-repository fallback is not needed |
+| Can a hook reach `github.com` in the cloud? | Step 1 | **Yes**: `git ls-remote` in 811 ms |
 | Is a `CLAUDE.md` changed by a `SessionStart` hook reloaded in that session? | Change it in a test hook, ask for the stamp | Open; decides whether step 3 of section 6 prints |
 | Do `paths:` rules work at user level? | One test rule in `rules/` | Open; the docs show `paths:` for project rules only |
 | How do `$HOME` hook commands run on Windows? | context-guard live check in `stella-rain/app#5`, then the PC in step 4 | Open |
