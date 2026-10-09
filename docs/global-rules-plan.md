@@ -4,9 +4,12 @@
   sessions, and what each repository keeps for itself.
 - **Status:** accepted 2026-10-09 (decisions below). Steps 0 to 5 done the same day; release
   `v2026.10.09.2` carries decision 5 and `v2026.10.09.3` moves context-guard to user level.
-  Step 6 is done for the four Stella Rain repositories (their "Author: Kade" lines are gone).
-  **Next:** the rest of step 6 (`resonance-stream`, `resonance-lab`, `kade-workflow`). The cloud
-  setup script's `ref` never needs bumping: `--install` and the hook move to the latest release.
+  Step 6 is done for every repository's `CLAUDE.md` (the four Stella Rain repositories, whose
+  "Author: Kade" lines are gone, and `resonance-stream` and `resonance-lab`). **Next:** the
+  duplicates in the `kade-workflow` skill (in `claude-skills`), and moving the Repository Layout
+  out of `resonance-lab`'s `CLAUDE.md`, which is still 202 lines against the 100-line limit.
+  The cloud setup script's `ref` never needs bumping: `--install` and the hook move to the
+  latest release.
 - **Related:** `docs/refactor-plan.md` (the current setup), `claude-skills/docs/skills-improvement-plan.md`
   (what the account skills should say).
 - **Decisions (Kade, 2026-10-09):**
@@ -329,7 +332,11 @@ exit 0
    `app` (stella-rain/app#64, 99 to 87 lines), `core` (stella-rain/core#37, 100 to 87) and
    `moderation` (stella-rain/moderation#3, 67 to 68, with its override: no auto-merge) and
    `.github` (56 to 54 lines, same override; delivered as a zip, Kade pushed it to `main` as
-   `cc7fff0`). **Left:** `resonance-stream`, `resonance-lab` and the duplicates in `kade-workflow`.
+   `cc7fff0`). **Done for the Resonance repositories:** `resonance-stream`
+   (star-resonance/resonance-stream#290, 93 to 87 lines, with its override: test first does not
+   apply to `runbook/`) and `resonance-lab` (star-resonance/resonance-lab#85, 252 to 202 lines,
+   no override). **Left:** the duplicates in `kade-workflow`, and the `resonance-lab` layout move
+   (a move, not a cut, so its own PR).
 
 ## 9. Open questions
 
