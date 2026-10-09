@@ -1,4 +1,4 @@
-Global rules: v0
+Global rules: v2026.10.09
 
 # Kade's global rules
 
