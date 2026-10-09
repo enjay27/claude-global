@@ -2,7 +2,7 @@
 
 - **Scope:** where Kade's coding and workflow conventions live, how they reach local and cloud
   sessions, and what each repository keeps for itself.
-- **Status:** accepted 2026-10-09 (decisions below). Steps 0 to 3 done the same day; step 4 next.
+- **Status:** accepted 2026-10-09 (decisions below). Steps 0 to 4 done the same day; step 5 next.
 - **Related:** `docs/refactor-plan.md` (the current setup), `claude-skills/docs/skills-improvement-plan.md`
   (what the account skills should say).
 - **Decisions (Kade, 2026-10-09):**
@@ -223,24 +223,22 @@ Bumping the tag in the setup script after a release refreshes the cache; it is o
 
 ## 7. Setup
 
-**Local, once per machine (PC, then Mac):**
+**Local, once per machine:** `setup/local-setup.ps1` on Windows, from PowerShell
+(`powershell -ExecutionPolicy Bypass -File local-setup.ps1`); `setup/local-setup.sh` on macOS and
+Linux. Both need `git` and `node` on the PATH, and both:
 
-```bash
-cd ~/.claude
-mkdir -p rules
-[ -f CLAUDE.md ] && mv CLAUDE.md rules/local.md     # keep personal lines as an untracked rule
-git init -q
-git remote add origin https://github.com/enjay27/claude-global
-git sparse-checkout set --no-cone /CLAUDE.md /rules/ /hooks/ /settings.global.json /.gitignore /.gitattributes
-git fetch --depth 1 origin tag v<first release>
-git checkout -q --detach v<first release>
-git show HEAD:deploy-exclude > .git/info/exclude
-node hooks/global-sync.cjs --install      # moves to the latest release, registers the hook
-```
+- stop before changing anything if `~/.claude` is already a git repository, if `settings.json`
+  has hook entries in `~/.claude/hooks/` (global-sync would replace them), or if a file is in the
+  way of the checkout;
+- keep an existing `~/.claude/CLAUDE.md` as `~/.claude/rules/local.md`, loaded but never tracked;
+- check out any release, then `global-sync --install` moves to the latest one, writes
+  `.git/info/exclude` and registers the hook; they end by printing the version line and checking
+  that `git status` in `~/.claude` is empty.
 
-On Windows, from Git Bash. `git init` in a folder that already has files is safe here: nothing
-is tracked until the checkout, and the allowlist keeps everything else untracked. `global-sync`
-rewrites `.git/info/exclude` from `deploy-exclude` on every update.
+Not from Git Bash on Windows: it rewrites arguments that start with `/` into Windows paths, so
+`git sparse-checkout set /CLAUDE.md` would receive `C:/Program Files/Git/CLAUDE.md`. And the
+scripts look for files in the way themselves, because a sparse checkout **overwrites** untracked
+files at its paths and exits 0, with only a warning (git 2.43); plain checkout refuses.
 
 **Cloud, in the environment's setup script** (`setup/cloud-setup.sh`):
 
@@ -304,7 +302,9 @@ exit 0
    repositories only. A check keeps it within 60 lines, and another holds this repository's
    workflows to the new workflow rule.
 4. **First release** with `scripts/release.cjs`; set `ref` in the cloud setup script to it; set up
-   the PC, then the Mac (section 7).
+   the PC, then the Mac (section 7). **Done 2026-10-09:** `v2026.10.09`; the cloud, the Windows PC
+   and the Mac each quote it, and on both machines a stamp set back to `v0` was moved forward by
+   the hook at the next session start. Setup scripts for both added afterwards, with 8 tests.
 5. **Move context-guard to user level.** Change its paths from `$CLAUDE_PROJECT_DIR/.claude/hooks`
    to `$HOME/.claude/hooks`, then remove the vendored copy and its settings entry from each
    repository in the same PR, so it never fires twice. One PR per repository.
@@ -321,9 +321,9 @@ exit 0
 | Is `~/.claude/CLAUDE.md` read in a cloud session started after the script? | Step 1 | **Yes**: the session quoted `Global rules: v0-probe` and named the file as the user's global instructions, next to the project's `CLAUDE.md`. `/context` is not available in cloud sessions, so the stamp is the check |
 | Do user-level `settings.json` hooks run in the cloud, next to the platform's own hooks? | Step 1 | **Yes**: the probe's `SessionStart` hook ran (`source=startup`); the per-repository fallback is not needed |
 | Can a hook reach `github.com` in the cloud? | Step 1 | **Yes**: `git ls-remote` in 811 ms |
-| Is a `CLAUDE.md` changed by a `SessionStart` hook reloaded in that session? | Change it in a test hook, ask for the stamp | Open; decides whether step 3 of section 6 prints |
+| Is a `CLAUDE.md` changed by a `SessionStart` hook reloaded in that session? | Stamp set to `v0`, then a new session | **No** (2026-10-09, Windows and Mac): the session kept the `v0` text it loaded; the printed copy is what carries the update, so the print stays |
 | Do `paths:` rules work at user level? | One test rule in `rules/` | Open; the docs show `paths:` for project rules only |
-| How do `$HOME` hook commands run on Windows? | context-guard live check in `stella-rain/app#5`, then the PC in step 4 | Open |
+| How do `$HOME` hook commands run on Windows? | The PC in step 4 | **They run**: `global-sync` updated `v0` to `v2026.10.09` at session start |
 
 ## 10. How it is tested
 
