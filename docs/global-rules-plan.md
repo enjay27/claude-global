@@ -2,13 +2,20 @@
 
 - **Scope:** where Kade's coding and workflow conventions live, how they reach local and cloud
   sessions, and what each repository keeps for itself.
-- **Status:** proposed 2026-10-09, revised the same day: checked against the Claude Code docs
-  (section 12), then reshaped around a new repository, `claude-global`, checked out as
-  `~/.claude`. Nothing is changed yet; every step waits for Kade's yes.
-- **Related:** `docs/refactor-plan.md` (the current setup), `docs/skills-improvement-plan.md`
+- **Status:** accepted 2026-10-09 (decisions below). Step 0 done the same day; step 1 next.
+- **Related:** `docs/refactor-plan.md` (the current setup), `claude-skills/docs/skills-improvement-plan.md`
   (what the account skills should say).
-- **Decisions wanted:** the split into two public repositories (section 4); tag protection and the
-  auto-update rule (section 6); whether `settings.json` stays untracked (section 5).
+- **Decisions (Kade, 2026-10-09):**
+  1. Two public repositories: `claude-skills` holds the account skills, `claude-global` everything
+     global (section 4).
+  2. A pushed `v*` tag is a release; every session moves to it at its next start; only Kade can
+     create one (section 6).
+  3. `~/.claude/settings.json` is not tracked; `global-sync` merges only its own hook entries
+     (section 5).
+- **Done:** step 0, 2026-10-09: this repository created; `hooks/` and the plans moved from
+  `claude-skills` at `8a227ca`; secret scanning with push protection on; rulesets `main` (PR
+  required, no bypass) and `release-tags` (`v*`, only the repository admin creates, nobody updates
+  or deletes).
 - **Home:** `enjay27/claude-global`, moved from `enjay27/claude-skills` in step 0 (2026-10-09).
 
 ## 1. The question
