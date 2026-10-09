@@ -394,8 +394,8 @@ stamp, `Global rules: v<tag>`, so the answer is exact and also shows a stale che
   2026-10-09: `graft init` had left five Graft hooks, `~/.claude/helpers/graft-hooks.cjs` and a
   user-wide `graft` MCP server on the Mac, on top of the project copies (each message twice).
   Mitigation: `code-graph` names such leftovers and offers their removal; a one-off cleanup
-  script for the Mac was delivered on 2026-10-09 (its run not yet confirmed). Nothing here
-  checks for foreign entries.
+  script for the Mac was delivered on 2026-10-09 (Kade confirmed its run the same day).
+  Nothing here checks for foreign entries.
 - **Always-on text costs attention.** Mitigation: the 60-line cap and a review of each line
   against "would a missed rule cost a failed command or a wrong PR".
 
