@@ -99,8 +99,9 @@ it: who can change the rules is still decided by tag protection and the PR rule 
 
 ```
 claude-global/
-  .gitignore              allowlist, below
-  .gitattributes          * text eol=lf   (Windows checkouts keep LF in .cjs and .md)
+  .gitignore              ordinary ignores, plus rules/local*.md
+  .gitattributes          * text=auto eol=lf   (Windows checkouts keep LF in .cjs and .md)
+  deploy-exclude          the allowlist, below; copied to ~/.claude/.git/info/exclude
   CLAUDE.md               line 1: "Global rules: v<tag>"; under 60 lines
   rules/*.md              global path-scoped rules, only if needed
   hooks/
@@ -125,9 +126,12 @@ claude-global/
 - `~/.claude`: the deployed checkout, detached at a tag, sparse, never edited by hand. An edit
   made here would apply to every session at once, before any review.
 
-**`.gitignore` is an allowlist.** `~/.claude` also holds session transcripts (`projects/`),
-history, caches and, on Linux, the login credentials (`.credentials.json`). A normal ignore list
-is one forgotten line from pushing those. So:
+**The deployed checkout ignores everything but the allowlist.** `~/.claude` also holds session
+transcripts (`projects/`), history, caches and, on Linux, the login credentials
+(`.credentials.json`). A normal ignore list is one forgotten line from pushing those. The
+allowlist lives in `deploy-exclude` and is copied to `~/.claude/.git/info/exclude`, which applies
+to that checkout only. (Not as the tracked `.gitignore`: there, `*` would also hide `docs/`,
+`setup/` and `scripts/` in the development clone.)
 
 ```gitignore
 *
@@ -142,7 +146,8 @@ rules/local*.md
 !settings.global.json
 ```
 
-A test fails when any tracked path is outside that list. Machine-only text goes in
+A test fails when a tracked path is neither in that list nor in the development-only paths
+(`setup/`, `scripts/`, `docs/`, `README.md`, `deploy-exclude`). Machine-only text goes in
 `~/.claude/rules/local.md`, which is loaded as a user rule and never tracked.
 
 **`settings.json` is not tracked.** Claude Code writes it itself (an "always allow" at user
@@ -198,11 +203,13 @@ git remote add origin https://github.com/enjay27/claude-global
 git sparse-checkout set --no-cone /CLAUDE.md /rules/ /hooks/ /settings.global.json /.gitignore /.gitattributes
 git fetch --depth 1 origin tag v<latest>
 git checkout -q --detach v<latest>
+git show HEAD:deploy-exclude > .git/info/exclude
 node hooks/global-sync.cjs --install      # registers itself and context-guard in settings.json
 ```
 
 On Windows, from Git Bash. `git init` in a folder that already has files is safe here: nothing
-is tracked until the checkout, and the allowlist keeps everything else untracked.
+is tracked until the checkout, and the allowlist keeps everything else untracked. `global-sync`
+rewrites `.git/info/exclude` from `deploy-exclude` on every update.
 
 **Cloud, in the environment's setup script** (`setup/cloud-setup.sh`):
 
@@ -215,6 +222,7 @@ git remote get-url origin >/dev/null 2>&1 \
   || git remote add origin https://github.com/enjay27/claude-global
 git sparse-checkout set --no-cone /CLAUDE.md /rules/ /hooks/ /settings.global.json /.gitignore /.gitattributes
 if git fetch -q --depth 1 origin tag "$tag" && git checkout -q --detach "$tag"; then
+  git show HEAD:deploy-exclude > .git/info/exclude
   node hooks/global-sync.cjs --install
 else
   echo "GLOBAL RULES FAILED TO LOAD ($tag). Tell Kade before doing anything else." > CLAUDE.md
