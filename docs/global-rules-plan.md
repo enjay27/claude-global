@@ -2,7 +2,7 @@
 
 - **Scope:** where Kade's coding and workflow conventions live, how they reach local and cloud
   sessions, and what each repository keeps for itself.
-- **Status:** accepted 2026-10-09 (decisions below). Steps 0 to 2 done the same day; step 3 next.
+- **Status:** accepted 2026-10-09 (decisions below). Steps 0 to 3 done the same day; step 4 next.
 - **Related:** `docs/refactor-plan.md` (the current setup), `claude-skills/docs/skills-improvement-plan.md`
   (what the account skills should say).
 - **Decisions (Kade, 2026-10-09):**
@@ -12,6 +12,10 @@
      create one (section 6).
   3. `~/.claude/settings.json` is not tracked; `global-sync` merges only its own hook entries
      (section 5).
+  4. Cloud sessions merge through GitHub's own auto-merge: Claude turns it on for each PR it
+     opens, and the `main` ruleset's required check decides. Only people with write access can
+     turn it on, and PRs from Kade's Claude sessions are authored by `enjay27`. Repositories with
+     an auto-merge workflow (Stella Rain, Resonance) keep it for now.
 - **Done:** step 0, 2026-10-09: this repository created; `hooks/` and the plans moved from
   `claude-skills` at `8a227ca`; secret scanning with push protection on; rulesets `main` (PR
   required, no bypass) and `release-tags` (`v*`, only the repository admin creates, nobody updates
@@ -294,7 +298,11 @@ exit 0
 3. **Draft the global `CLAUDE.md`**: the few rules that must always apply (coding conventions;
    the order plan, test, gate, commit; where state is recorded; the Windows shell traps), and a
    note on what each line replaced. List the candidates from repository `CLAUDE.md` files and
-   `kade-workflow` first and let Kade confirm each. Under 60 lines.
+   `kade-workflow` first and let Kade confirm each. Under 60 lines. **Done 2026-10-09:**
+   `CLAUDE.md` (57 lines, stamp `v0` until the first release), the sources in
+   `docs/global-claude-md-sources.md`, read from the `stella-rain` and `star-resonance`
+   repositories only. A check keeps it within 60 lines, and another holds this repository's
+   workflows to the new workflow rule.
 4. **First release** with `scripts/release.cjs`; set `ref` in the cloud setup script to it; set up
    the PC, then the Mac (section 7).
 5. **Move context-guard to user level.** Change its paths from `$CLAUDE_PROJECT_DIR/.claude/hooks`
