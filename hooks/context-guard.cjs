@@ -13,8 +13,9 @@
 //                            Each level fires once until usage drops again.
 //   SessionStart (compact)   after a compaction: tells Claude to say so and offer a handoff.
 //
-// Lines (Kade, 2026-10-08): warn at 200k tokens, recommend a handoff at 400k, but never later than
-// 40% / 60% of the window, so a 200k-window model gets 80k / 120k. Quality drops gradually as
+// Lines (Kade, 2026-10-08; number line moved 200k -> 300k 2026-10-10): show the number at 300k
+// tokens, recommend a handoff at 400k, but never later than 40% / 60% of the window, so a
+// 200k-window model gets 80k / 120k. Quality drops gradually as
 // context grows (Anthropic: "context rot"); no vendor publishes a switch point, so these are
 // judgement, and a finished task is a better moment to switch than any number.
 //
@@ -22,7 +23,7 @@
 //   CLAUDE_CONTEXT_WINDOW    window size in tokens. Default 1000000: Opus 4.7+, Sonnet 5+ and
 //                            the Fable models run a 1M window by default. Set 200000 for a
 //                            200k-window model.
-//   CONTEXT_WARN_TOKENS      default 200000     CONTEXT_WARN_PCT      default 40 (cap)
+//   CONTEXT_WARN_TOKENS      default 300000     CONTEXT_WARN_PCT      default 40 (cap)
 //   CONTEXT_HANDOFF_TOKENS   default 400000     CONTEXT_HANDOFF_PCT   default 60 (cap)
 //
 // The hook never blocks a prompt: on any error it prints nothing and exits 0.
@@ -87,7 +88,7 @@ function num(value, fallback) {
 function thresholds(size, env) {
   const line = (tokens, pct) => Math.min(tokens, Math.floor((size * pct) / 100));
   return {
-    warn: line(num(env.CONTEXT_WARN_TOKENS, 200000), num(env.CONTEXT_WARN_PCT, 40)),
+    warn: line(num(env.CONTEXT_WARN_TOKENS, 300000), num(env.CONTEXT_WARN_PCT, 40)),
     handoff: line(num(env.CONTEXT_HANDOFF_TOKENS, 400000), num(env.CONTEXT_HANDOFF_PCT, 60)),
   };
 }
