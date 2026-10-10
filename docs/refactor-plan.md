@@ -79,13 +79,13 @@ the check automatic in Claude Code sessions (terminal and cloud):
 - Hooks receive no context usage, but they receive `transcript_path`, and every assistant entry
   there carries the request's `usage`. Input + cache creation + cache read is the same number the
   status line shows as context used.
-- **UserPromptSubmit:** at **200k tokens** Claude answers, then adds one line with the number; at
+- **UserPromptSubmit:** at **300k tokens** Claude answers, then adds one line with the number; at
   **400k** it stops before the prompt's work, recommends a handoff, and offers three choices: handoff and
   a new session (`session-handoff`), `/compact` with a focus, or continue. Kade also sees a
   one-line warning. Each level fires once, and re-arms when usage drops after a compaction.
 - **SessionStart, matcher `compact`:** right after a compaction, Claude says so and offers the
   same choices.
-- The lines are token counts capped at a share of the window: warn at 200k but never later than
+- The lines are token counts capped at a share of the window: warn at 300k but never later than
   40%, hand off at 400k but never later than 60% (a 200k-window model: 80k and 120k). The window
   defaults to 1M. All are environment variables (`CONTEXT_WARN_TOKENS`, `CONTEXT_HANDOFF_TOKENS`,
   `CONTEXT_WARN_PCT`, `CONTEXT_HANDOFF_PCT`, `CLAUDE_CONTEXT_WINDOW`).

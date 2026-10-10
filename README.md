@@ -7,7 +7,7 @@ that move each repository onto them. Public. The account skills live in
 | Path | What | How it is used |
 |---|---|---|
 | `CLAUDE.md` | The global rules, loaded in every session as `~/.claude/CLAUDE.md`; line 1 is the release | Released with `scripts/release.cjs` |
-| `hooks/context-guard.cjs` | Warns at 200k tokens of context, recommends a handoff at 400k (never later than 40% / 60% of the window), and after a compaction | User-level `UserPromptSubmit` and `SessionStart` (compact) hooks, registered from `settings.global.json`; repositories no longer vendor a copy |
+| `hooks/context-guard.cjs` | Shows the context number at 300k tokens, recommends a handoff at 400k (never later than 40% / 60% of the window), and after a compaction | User-level `UserPromptSubmit` and `SessionStart` (compact) hooks, registered from `settings.global.json`; repositories no longer vendor a copy |
 | `hooks/global-sync.cjs` | Keeps `~/.claude` on the latest release tag; prints the new rules into the session that moved | User-level `SessionStart` hook, registered from `settings.global.json` |
 | `settings.global.json` | The hook entries merged into `~/.claude/settings.json` (only entries pointing into `~/.claude/hooks/`) | Read by `global-sync` |
 | `deploy-exclude` | The allowlist for `~/.claude`: nothing else there can be tracked | Copied to `~/.claude/.git/info/exclude` |

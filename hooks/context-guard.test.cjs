@@ -45,8 +45,8 @@ test("window size: configured, else 1M (the default window of current Claude mod
   assert.strictEqual(g.windowSize({ CLAUDE_CONTEXT_WINDOW: "junk" }), 1000000);
 });
 
-test("thresholds: 200k / 400k tokens, never later than 40% / 60% of the window", () => {
-  assert.deepStrictEqual(g.thresholds(1000000, {}), { warn: 200000, handoff: 400000 });
+test("thresholds: 300k / 400k tokens, never later than 40% / 60% of the window", () => {
+  assert.deepStrictEqual(g.thresholds(1000000, {}), { warn: 300000, handoff: 400000 });
   assert.deepStrictEqual(g.thresholds(200000, {}), { warn: 80000, handoff: 120000 });
   assert.deepStrictEqual(g.thresholds(500000, {}), { warn: 200000, handoff: 300000 });
   assert.deepStrictEqual(
@@ -60,30 +60,30 @@ test("thresholds: 200k / 400k tokens, never later than 40% / 60% of the window",
 });
 
 test("levels, in tokens", () => {
-  assert.strictEqual(g.levelFor(199999, 200000, 400000), 0);
-  assert.strictEqual(g.levelFor(200000, 200000, 400000), 1);
-  assert.strictEqual(g.levelFor(400000, 200000, 400000), 2);
+  assert.strictEqual(g.levelFor(299999, 300000, 400000), 0);
+  assert.strictEqual(g.levelFor(300000, 300000, 400000), 1);
+  assert.strictEqual(g.levelFor(400000, 300000, 400000), 2);
 });
 
 const prompt = { hook_event_name: "UserPromptSubmit", session_id: "s1" };
 
-test("quiet below 200k in a 1M session (the old 200k guess warned at 120k here)", () => {
-  assert.strictEqual(g.decide(prompt, entry(0, 149000), 0, {}), null);
+test("quiet below 300k in a 1M session (the old 200k guess warned at 120k here)", () => {
+  assert.strictEqual(g.decide(prompt, entry(0, 298000), 0, {}), null);
 });
 
-test("warns once at 200k, then stays quiet at the same level", () => {
-  const text = entry(0, 209000); // 210k of 1M
+test("warns once at 300k, then stays quiet at the same level", () => {
+  const text = entry(0, 309000); // 310k of 1M
   const first = g.decide(prompt, text, 0, {});
   assert.strictEqual(first.level, 1);
-  assert.match(first.output.hookSpecificOutput.additionalContext, /210k tokens \(21% of 1M\)/);
-  assert.match(first.output.hookSpecificOutput.additionalContext, /warning line 200k/);
+  assert.match(first.output.hookSpecificOutput.additionalContext, /310k tokens \(31% of 1M\)/);
+  assert.match(first.output.hookSpecificOutput.additionalContext, /warning line 300k/);
   assert.match(first.output.hookSpecificOutput.additionalContext, /recommended at 400k/);
-  assert.strictEqual(first.output.systemMessage, "Context 210k tokens (21%) used");
+  assert.strictEqual(first.output.systemMessage, "Context 310k tokens (31%) used");
   assert.strictEqual(g.decide(prompt, text, 1, {}), null);
 });
 
-test("the 200k warning only gives the number: no handoff, /compact or choices before 400k", () => {
-  const out = g.decide(prompt, entry(0, 209000), 0, {});
+test("the 300k warning only gives the number: no handoff, /compact or choices before 400k", () => {
+  const out = g.decide(prompt, entry(0, 309000), 0, {});
   const context = out.output.hookSpecificOutput.additionalContext;
   assert.doesNotMatch(context, /session-handoff|\/compact|choices|ask first/i);
   assert.match(context, /recommended at 400k/);
@@ -127,12 +127,12 @@ test("after compaction, SessionStart tells Claude to offer a handoff", () => {
 test("end to end through stdin, with state kept between prompts", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cg-"));
   const transcript = path.join(dir, "t.jsonl");
-  fs.writeFileSync(transcript, [user, entry(0, 209000)].join("\n") + "\n");
+  fs.writeFileSync(transcript, [user, entry(0, 309000)].join("\n") + "\n");
   const input = JSON.stringify({ ...prompt, session_id: "e2e", transcript_path: transcript, scratchpad_dir: dir });
   const run = () => execFileSync(process.execPath, [path.join(__dirname, "context-guard.cjs")], { input, encoding: "utf8" });
 
   const first = JSON.parse(run());
-  assert.strictEqual(first.systemMessage, "Context 210k tokens (21%) used");
+  assert.strictEqual(first.systemMessage, "Context 310k tokens (31%) used");
   assert.strictEqual(run(), ""); // same level: quiet
 
   fs.appendFileSync(transcript, entry(0, 450000) + "\n");
