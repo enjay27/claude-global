@@ -82,6 +82,13 @@ test("warns once at 200k, then stays quiet at the same level", () => {
   assert.strictEqual(g.decide(prompt, text, 1, {}), null);
 });
 
+test("the 200k warning only gives the number: no handoff, /compact or choices before 400k", () => {
+  const out = g.decide(prompt, entry(0, 209000), 0, {});
+  const context = out.output.hookSpecificOutput.additionalContext;
+  assert.doesNotMatch(context, /session-handoff|\/compact|choices|ask first/i);
+  assert.match(context, /recommended at 400k/);
+});
+
 test("recommends a handoff at 400k even after the warning", () => {
   const out = g.decide(prompt, entry(0, 409000), 1, {});
   assert.strictEqual(out.level, 2);
