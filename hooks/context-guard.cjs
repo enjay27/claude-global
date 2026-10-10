@@ -174,8 +174,7 @@ function decide(input, transcriptText, previousLevel, env) {
       : `context-guard: the context holds ${used} (warning line ${fmt(warn)}). ` +
         "Answer this prompt, then at the end add one line telling Kade the number and that a " +
         "handoff will be recommended at " +
-        `${fmt(handoff)}. If this prompt starts a large new task, ask first. ` +
-        CHOICES;
+        `${fmt(handoff)}. Do not offer a handoff before then.`;
 
   return {
     level,
