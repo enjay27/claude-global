@@ -20,11 +20,17 @@
      writes nothing anywhere but its pages.
   5. Reports are **private Artifact pages**, each republished at one URL.
   6. The daily run starts at **09:10 KST**.
-  7. Governance files live **centrally in this repository**; no governance file per repository.
+  7. Governance files live in **their own private repository, `kade-agent/governance`**
+     (organization `kade-agent`, created 2026-10-11), not here: `claude-global` is public, and
+     the profiles name private repositories, their merge models and their exceptions. No
+     governance file per working repository.
   8. The drift report's **Claude judgement runs every day**, on what changed since the last
      run; the first run and each global-rules release judge everything (section 6).
   9. The daily result report adds two lines: **auto-merge stuck** and **security alerts**
      (section 4). Moderation reports waiting on a decision come later, if needed.
+  10. `claude-global` and `claude-skills` move to `kade-agent` **later**, in a task of their own
+     with its own plan (an inventory of everything that names them first); this plan stays here
+     until then.
 
 ## 1. The question
 
@@ -62,6 +68,7 @@ alone. The drift run starts later so that the daily page of the same morning can
 
 `claude-global` and `claude-skills` are the rules' own source, not working repositories: their
 own tests cover them, and neither report reads them except to know the current global release.
+`kade-agent/governance` is the reports' own home and is covered by its own tests, not checked.
 Adding a repository is one profile file (section 5).
 
 ## 4. Daily result report
@@ -99,23 +106,29 @@ shared only by Kade from the page's Share menu.
 ## 5. Drift report: files
 
 ```
-claude-global/
-  governance/
-    controls.json            the catalog (section 7)
-    orgs/<owner>.json        stella-rain, star-resonance, enjay27
-    repos/<owner>__<repo>.json
-    daily.md                 what the daily result run does, step by step
-    drift.md                 what the drift run does, step by step
+kade-agent/governance/       private
+  CLAUDE.md                  the repository's rules, gates and merge model
+  .gitattributes             * text=auto eol=lf
+  .github/workflows/test.yml node --test on every push and PR
+  controls.json              the catalog (section 7)
+  orgs/<owner>.json          stella-rain, star-resonance, enjay27
+  repos/<owner>__<repo>.json
+  daily.md                   what the daily result run does, step by step
+  drift.md                   what the drift run does, step by step
   scripts/
     governance-check.cjs     checks every control a script can check; JSON out
     governance-check.test.cjs
 ```
 
-- **JSON and Node's standard library only**, as this repository has no `package.json` and no
-  dependency today. Workflow files are read with line patterns, as `repo.test.cjs` already
-  reads this repository's own; section 10 names the limit.
-- `governance/` and the new scripts are development-only: `deploy-exclude` keeps them out of
-  `~/.claude`, and `repo.test.cjs` proves it.
+- **JSON and Node's standard library only**: no `package.json` and no dependency, as in
+  `claude-global`. Workflow files are read with line patterns, as `claude-global`'s
+  `repo.test.cjs` reads its own; section 10 names the limit.
+- **Kade merges** its PRs: a private repository on GitHub Free has no branch protection, so
+  GitHub auto-merge has no required check to wait for. An auto-merge workflow of its own, like
+  the working repositories', can come later in its own PR.
+- **The global rules it checks against** are named by version: `controls.json` records the
+  `claude-global` release its controls were written for, and a rule change there that affects
+  a control is followed by a PR in `kade-agent/governance`.
 - **An owner profile** holds what its repositories share: the reusable-workflow repository, the
   Project and its snapshot branch, the merge model, and where development issues of repositories
   without their own tracker go.
@@ -188,21 +201,21 @@ Built from the audit's findings; each becomes a test fixture before its check is
 | TR-02 | A ported file's source commit is recorded, and its drift from the source is listed | – | advise | script |
 | TR-03 | A public repository's issues, logs and docs carry no private planning or personal data | G18 | broken | claude |
 
-Adding, removing or changing a control is a PR here, like any change to the global rules.
+Adding, removing or changing a control is a PR in `kade-agent/governance`.
 
 ## 8. The Routines
 
 | | Daily results | Drift |
 |---|---|---|
 | Schedule | `CRON_TZ=Asia/Seoul 10 9 * * *` | `CRON_TZ=Asia/Seoul 40 9 * * *` |
-| Prompt | "Follow `governance/daily.md` at `enjay27/claude-global` `main`." | "Follow `governance/drift.md` at `enjay27/claude-global` `main`." |
+| Prompt | "Follow `daily.md` at `kade-agent/governance` `main`." | "Follow `drift.md` at `kade-agent/governance` `main`." |
 | Writes | its three pages | issues (section 6) and its page |
 | First run | capped by nothing; it writes no issue | at most 10 new issues |
 
 - Each fires a **fresh session** in the cloud environment that holds the working repositories,
   with the GitHub connector granted and nothing else, and a push notification on completion.
-- The one-line prompt means **what a run does changes only through a reviewed PR here**, never
-  by editing the Routine.
+- The one-line prompt means **what a run does changes only through a reviewed PR in
+  `kade-agent/governance`**, never by editing the Routine.
 - **Every run, first:** fetch each repository and read it at `origin/main` (the audit's first
   wrong turn); if a repository or the API cannot be read, say so on the page, and never report
   an unchecked item as passing.
@@ -218,7 +231,7 @@ needs no catalog and is useful at once.
 | Step | What | Gate | This session can run it |
 |---|---|---|---|
 | 0 | This plan, accepted by Kade in a commit of its own | – | – |
-| 1 | `orgs/*.json`, `repos/*.json` (working repositories only), `daily.md`; a run by hand whose three pages Kade reads | `node --test` (profiles parse, every working repository has one); the pages | yes |
+| 1 | In `kade-agent/governance`: `CLAUDE.md`, `.gitattributes`, `test.yml`; `orgs/*.json`, `repos/*.json` (working repositories only), `daily.md`; a run by hand whose three pages Kade reads | `node --test` (profiles parse, every working repository has one); the pages | yes |
 | 2 | The daily Routine, then its first scheduled run read by Kade | the first scheduled pages | yes, with Kade |
 | 3 | `controls.json`, the checker for the `script` controls, fixtures from the audit's findings, tests first | `node --test` | yes |
 | 4 | `drift.md`; the `api` and `claude` steps; `--dry-run` prints the issue plan without writing; reviewed with Kade against the audit | `node --test`; a dry run | yes |
@@ -228,8 +241,11 @@ needs no catalog and is useful at once.
 ### 9a. Changes to the rules
 
 - Global `CLAUDE.md`, one line under *How to work*: "Governance issues (`governance` label) are
-  ordinary work; an exception to a control goes in the repository's profile here and in its
-  Overrides section, never in only one." The file stays within its 60-line cap.
+  ordinary work; an exception to a control goes in the repository's profile in
+  `kade-agent/governance` and in its Overrides section, never in only one." The file stays
+  within its 60-line cap.
+- Global `CLAUDE.md`, the line naming whose repositories it is for: `kade-agent` joins the owners whose repositories the rules
+  cover.
 - `repo-workflow` (in `claude-skills`), one line in section 1: read another repository at its
   `origin/main`.
 - Each working repository's `CLAUDE.md` gets the Overrides section where it has none (app,
@@ -237,7 +253,7 @@ needs no catalog and is useful at once.
 
 Not in this plan: fixing what the drift report finds (those are its issues), a CI check that
 blocks PRs (possible later as a reusable workflow, once the controls are stable), and the
-audit's six proposed rule changes C1 to C6, which become controls or issues here.
+audit's six proposed rule changes C1 to C6, which become controls or drift issues.
 
 ## 10. Open questions
 
@@ -274,7 +290,6 @@ audit's six proposed rule changes C1 to C6, which become controls or issues here
 - `scripts/governance-check.test.cjs`: one fixture per control, failing and passing, built from
   the audit's real findings (for example, resonance-lab's `ci.yml` without `permissions`); a test
   that every working repository has a profile and every profile parses.
-- `repo.test.cjs` keeps proving that nothing under `governance/` reaches `~/.claude`.
 - The daily report's first pages are read by Kade before its schedule starts (step 1, step 2).
 - The drift report's `--dry-run` over today's clones is compared with the audit (step 4), and
   its first real run is fired by hand (step 6).
