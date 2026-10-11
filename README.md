@@ -6,14 +6,15 @@ that move each repository onto them. Public. The account skills live in
 
 | Path | What | How it is used |
 |---|---|---|
-| `CLAUDE.md` | The global rules, loaded in every session as `~/.claude/CLAUDE.md`; line 1 is the release | Released with `scripts/release.cjs` |
+| `CLAUDE.md` | The global rules, loaded in every session as `~/.claude/CLAUDE.md`; line 1 is the release | Released by the Release workflow |
 | `hooks/context-guard.cjs` | Shows the context number at 300k tokens, recommends (never forces) a handoff at 400k (never later than 40% / 60% of the window), and after a compaction | User-level `UserPromptSubmit` and `SessionStart` (compact) hooks, registered from `settings.global.json`; repositories no longer vendor a copy |
 | `hooks/global-sync.cjs` | Keeps `~/.claude` on the latest release tag; prints the new rules into the session that moved | User-level `SessionStart` hook, registered from `settings.global.json` |
 | `settings.global.json` | The hook entries merged into `~/.claude/settings.json` (only entries pointing into `~/.claude/hooks/`) | Read by `global-sync` |
 | `deploy-exclude` | The allowlist for `~/.claude`: nothing else there can be tracked | Copied to `~/.claude/.git/info/exclude` |
 | `setup/cloud-setup.sh` | Checks this repository out into `~/.claude` in a cloud session | Pasted into the cloud environment's setup script |
 | `setup/local-setup.ps1`, `setup/local-setup.sh` | The same on a Windows PC (PowerShell, not Git Bash) and on macOS or Linux, once per machine | Run by Kade; they stop before overwriting anything |
-| `scripts/release.cjs` | `prepare "<what changed>"`, merge the PR, then `tag` | The only way to make a release |
+| `.github/workflows/release.yml` | Release: on `rc`, tags `vYYYY.MM.DD` (`.2` later the same day) on a commit that stamps line 1 of `CLAUDE.md`, with a GitHub release | Started by Kade (Actions → Release → Run on `rc`) after a PR from `main` into `rc` |
+| `scripts/release.cjs` | `next`, `stamp <tag>`, `latest` for the workflow; the older `prepare` / `tag` until the first workflow release | Called by the workflow |
 | `docs/global-rules-plan.md` | One global rule set checked out as `~/.claude` on every machine and in the cloud, plus rules per repository | Closed 2026-10-09; every step done |
 | `docs/refactor-plan.md` | Moving `CLAUDE.md`, `MEMORY.md`, skills and rules to this setup, per repository | Read by the session doing the work |
 

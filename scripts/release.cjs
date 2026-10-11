@@ -11,6 +11,12 @@
 //       After the merge: checks that origin/main carries a stamp newer than every release, runs the
 //       tests on that commit, tags it and pushes the tag.
 //
+// The Release workflow (.github/workflows/release.yml) runs on rc and calls three more commands:
+//   next     the tag for today (as prepare picks it); refuses a HEAD already released as the
+//            parent of a stamped release commit
+//   stamp T  writes "Global rules: T" into line 1 of CLAUDE.md in the working tree
+//   latest   the highest release tag, or nothing
+//
 // Run from the development clone, never from ~/.claude. prepare runs the tests before it creates
 // anything, and on any failure returns to the branch it started from and deletes its release
 // branch. Tests for this file set RELEASE_DATE, RELEASE_SKIP_TESTS and RELEASE_FAIL_TESTS.
@@ -117,13 +123,46 @@ function tag() {
   console.log(`Released ${stamp}. Every session moves to it at its next start.`);
 }
 
+function releaseTags() {
+  return git("tag", "-l", "v*").split("\n").filter(Boolean);
+}
+
+function next() {
+  const head = git("rev-parse", "HEAD");
+  const tags = releaseTags();
+  for (const t of tags) {
+    let parent;
+    try {
+      parent = git("rev-parse", "-q", "--verify", `${t}^{commit}^`);
+    } catch {
+      continue; // a root commit has no parent
+    }
+    if (parent === head && latestRelease([t]) === t) {
+      throw new Error(`${head} is already released as ${t}`);
+    }
+  }
+  return nextTag(today(), tags);
+}
+
+function stamp(tag) {
+  if (!tag || latestRelease([tag]) !== tag) {
+    throw new Error(`${tag || "(none)"} is not a release tag`);
+  }
+  fs.writeFileSync("CLAUDE.md", setStamp(fs.readFileSync("CLAUDE.md", "utf8"), tag));
+}
+
 if (require.main === module) {
   const [cmd, ...rest] = process.argv.slice(2);
   try {
     process.chdir(git("rev-parse", "--show-toplevel"));
     if (cmd === "prepare") prepare(rest.join(" "));
     else if (cmd === "tag") tag();
-    else throw new Error('usage: release.cjs prepare "<what changed>" | tag');
+    else if (cmd === "next") console.log(next());
+    else if (cmd === "stamp") stamp(rest[0]);
+    else if (cmd === "latest") console.log(latestRelease(releaseTags()) || "");
+    else {
+      throw new Error('usage: release.cjs prepare "<what changed>" | tag | next | stamp <tag> | latest');
+    }
   } catch (e) {
     console.error(`release: ${e.message}`);
     process.exit(1);
