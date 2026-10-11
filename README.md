@@ -7,7 +7,7 @@ repository (global rules, the `context-guard` hook, the setup plans) lives in
 | Path | What | How it is used |
 |---|---|---|
 | `skills/repo-workflow/` | The procedures behind the global rules for any of Kade's repositories: plan, gates, commit and PR style, state | Saved as a claude.ai account skill |
-| `skills/handoff-trigger/` | When to recommend a handoff and a new session, from the context size (a `context-guard` message, a compaction, a task boundary) | Account skill |
+| `skills/handoff-trigger/` | When to ask about or recommend a handoff and a new session, from the context size and the next task (a `context-guard` message, a compaction, a totally different type of task) | Account skill |
 | `skills/code-graph/` | Orient in a repository with Graft's code graph (callers, blast radius) instead of exploring file by file; no install, no telemetry, no Trail, no Graft hooks or MCP server | Account skill |
 | `skills/session-resume/` | Start a session from the recorded state | Account skill |
 | `skills/session-handoff/` | Close a session: park the task, record state, print a starter prompt | Account skill |
