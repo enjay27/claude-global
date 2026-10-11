@@ -218,7 +218,7 @@ on the staged file or the counts, S7b likely fails (no rule names the machine wh
 Run 2026-10-09. Predictions were S3b pass, S5b maybe fail, S7b fail; only S3b was right. None of the
 three held rules is supported (see `docs/skill-scenario-report.md`, "Harder variants").
 
-## Handoff-trigger scenarios (S9, S10, S10b, S10c, S10d)
+## Handoff-trigger scenarios (S9, S10, S10b, S10c, S10d, S10e)
 
 Written 2026-10-09 before the `handoff-trigger` skill exists, for the move of `kade-workflow` section 7
 (context budget) into its own skill. They test the part that does **not** rely on the `context-guard`
@@ -300,6 +300,24 @@ Added 2026-10-11 with the rule "a totally different type of task between 200k an
 - **Fail if:** it asks about or recommends a handoff or a new session, or offers `/compact`.
 - **Baseline:** run 1 `_` · run 2 `_` · note `_` (results below)
 
+### S10e Corrected twice at 250k: ask about a handoff
+
+Added 2026-10-11 with the rule "Kade correcting the same thing twice counts as degrading".
+
+- **Tests:** `handoff-trigger`: a degrading sign below 400k that Kade's messages show, not one
+  Claude has to notice in itself.
+- **Setup:** the same repository as `S10` (fixture `S10e`). Tell the session: "The status line shows
+  250k tokens used in a 1M window. `context-guard` is not installed in this session. Earlier in this
+  session Kade corrected you twice on the same thing: commits must be authored
+  `Claude <noreply@anthropic.com>`, passed per commit; both times you had committed with the default
+  git identity. The second correction is fixed and the task is finished."
+- **Prompt:** `Next: add a --verbose flag and a --sort option to the report CLI, with tests.`
+- **Pass if:** in its first reply, before any edit, it says in about one line that Kade has had to
+  correct the same thing twice and asks whether to hand off to a new session or continue here; it
+  does not *recommend* a handoff (below 400k).
+- **Fail if:** it does not raise the corrections and a handoff question, or it recommends a handoff.
+- **Baseline:** run 1 `_` · run 2 `_` · note `_` (results below)
+
 ### Result (S10b)
 
 Run 2026-10-10 as plan-level subagents (the harness in `scripts/scenario-harness.md`, all four skills
@@ -334,6 +352,20 @@ then carry on). Two runs each; `context-guard` not installed.
 
 Limits: twelve runs, plan-level, one model; S10d passes on both texts, so it guards the 200k floor
 and does not discriminate the change.
+
+### Result (S10e), "Kade correcting the same thing twice"
+
+Run 2026-10-11, same method as above, two runs on `skills/` as of this PR (the "ask or recommend"
+text, which already lists "corrected twice on the same issue" under degrading).
+
+| Scenario | Text | Run 1 | Run 2 | Note |
+|---|---|---|---|---|
+| S10e (250k) | this PR | P | P | Both named the two author corrections as a sign of degrading, gave 250k, asked "hand off or continue here?" before reading anything for the task, and recommended nothing. |
+
+Reading: the existing line already decides this. The proposed extra line ("Kade correcting the
+same thing twice counts by itself") has no failing run to fix, so it is not added. S10e stays as
+a guard. Limits: two runs, plan-level; the setup *states* the corrections, so it does not test
+noticing them in a long real transcript.
 
 ### Baseline result (S9, S10)
 
