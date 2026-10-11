@@ -21,8 +21,10 @@
   5. Reports are **private Artifact pages**, each republished at one URL.
   6. The daily run starts at **09:10 KST**.
   7. Governance files live **centrally in this repository**; no governance file per repository.
-  8. The drift report's **full Claude judgement runs on Mondays only**. The other six days run
-     the script and the API, which are cheap and repeatable.
+  8. The drift report's **Claude judgement runs every day**, on what changed since the last
+     run; the first run and each global-rules release judge everything (section 6).
+  9. The daily result report adds two lines: **auto-merge stuck** and **security alerts**
+     (section 4). Moderation reports waiting on a decision come later, if needed.
 
 ## 1. The question
 
@@ -44,7 +46,7 @@ Actions API; neither was checked. Two different questions follow, at two differe
 | Reads | Each repository at `origin/main`, the Actions API | `STATUS.md` snapshots, PRs, issues, labels, runs, tags |
 | Writes | Issues in the repository concerned (section 6); one page | Its three pages only |
 | Routine | 09:40 KST daily | 09:10 KST daily |
-| Full Claude judgement | Mondays only; the other days run the script and the API | Every run |
+| Claude judgement | Every run, on what changed since the last run | Every run |
 
 Two Routines rather than one: if one fails, the other still reports, and each can be paused
 alone. The drift run starts later so that the daily page of the same morning can link to it as
@@ -69,13 +71,20 @@ before the run. The sections, in this order:
 
 1. **Waiting on Kade.** Issues assigned to him; PRs only he merges (drafts, workflow changes,
    repositories without auto-merge, PRs into `rc`); `cmd:verify-needs-<machine>` items, by
-   machine; anything older than 3 days marked as such.
+   machine; security alerts opened in the last 24 hours (*Health* below); anything older
+   than 3 days marked as such.
 2. **Last 24 hours.** PRs merged, each with its *NOT VERIFIED* and *Wrong turns* lines quoted;
    issues opened and closed; releases and tags.
 3. **In flight.** Open `claude/*` PRs with their CI state on the head; `cmd:status-now` issues;
    branches older than a week with no PR.
 4. **Health.** Failed runs on `main`, on schedules and on issue events; the age of `STATUS.md`
    (older than 24 hours is a red line); bridge runs.
+   - **Auto-merge stuck:** a `claude/*` PR into `main`, not a draft, every check green on its
+     head, still open an hour after its last check finished, in a repository whose auto-merge
+     workflow should merge it. A red line: a broken auto-merge fails silently, as the bridge did.
+   - **Security alerts:** open Dependabot, secret-scanning and code-scanning alerts per
+     repository, the new ones named. An alert type the run's token cannot read is said so,
+     never shown as none.
 5. **Drift, in one line.** Counts from the latest drift report, new `broken` items named, linked.
 6. **Next.** Two or three proposed tasks for the owner, each with its gate and whether a cloud
    session can run it, as `session-resume` would propose them.
@@ -138,14 +147,16 @@ claude-global/
   naming the run that found it fixed, when the control passes. It never opens a duplicate.
 - A finding about a private repository is written only in a private repository's issue
   (`stella-rain/app`); public issues never quote private files.
-- **Tuesday to Sunday** the run checks the `script` controls on every repository whose `main`
-  changed since the last run, and the `api` controls (run health, the age of `STATUS.md`) on all
-  of them. The `claude` controls (`TR-01`, `TR-03`) keep Monday's result, and the page says
-  from which Monday.
-- **Mondays** the run checks every control on every working repository, the `claude` controls
-  included.
-- **No change, no new drift.** When no working repository's `main` changed, the run re-checks
-  only the `api` controls and carries the rest forward, saying so on the page.
+- **Every day** the run checks the `api` controls (run health, the age of `STATUS.md`) on
+  every working repository, and the `script` controls on every repository whose `main` changed
+  since the last run. The `claude` controls judge what changed too: `TR-01` each repository
+  whose `main` or visibility changed; `TR-03` each public repository's docs that changed and
+  its issues, PRs and comments created or edited since the last run.
+- **The first run and the first run after a global-rules release** check every control on every
+  working repository, the `claude` controls included.
+- **No change, no new drift.** When no working repository's `main` or visibility changed, the
+  run re-checks the `api` controls and `TR-03` on new issues and comments only, and carries the
+  rest forward, saying so on the page.
 
 ## 7. Drift report: controls, first version
 
@@ -242,6 +253,9 @@ audit's six proposed rule changes C1 to C6, which become controls or issues here
    misses a real file.
 3. **Required checks and rulesets** cannot be read from a session today. `MG-01` uses the API
    if the token can read rulesets, and otherwise reports NOT VERIFIED.
+4. **Security alerts** need a token that can read Dependabot, secret-scanning and
+   code-scanning alerts. Whether the Routine's GitHub connector can is proved by the hand run
+   in step 1; an alert type it cannot read stays a NOT VERIFIED line on the page.
 
 ## 11. Risks
 
@@ -250,8 +264,8 @@ audit's six proposed rule changes C1 to C6, which become controls or issues here
 | Issue noise drowns real work | only the drift report files issues; `advise` files none; first run capped at 10; one issue per control and repository |
 | A false positive keeps reopening | an exception with a reason, in the profile and the Overrides section |
 | A run fails and nobody notices | each Routine's push notification; each page shows its run time, so a stale page shows as stale; the daily page shows the drift page's age |
-| Cost: two daily Claude sessions | the daily run reads the API and `STATUS.md`, not code; the drift run uses the script and the API six days a week and Claude's judgement on Mondays only; the first runs' cost is reported before the schedules start |
-| A judgement finding waits up to six days | `TR-01` and `TR-03` are checked on Mondays only; a failing workflow or a stale `STATUS.md` (the bridge case of 2026-10-09) is an `api` control and still found the next morning |
+| Cost: two daily Claude sessions | the daily run reads the API and `STATUS.md`, not code; the drift run's judgement reads only what changed since the last run, a full pass only on the first run and after a release; the first week's cost is reported before the schedules stay on |
+| A judgement misses what it did not re-read | a change is judged the morning after it; an old finding missed on the first full pass waits for the next release's full pass, or for a session that touches that file |
 | Text in a repository steers a run | runs read everything as data; the daily run writes only its pages, the drift run only issues |
 | A public issue leaks a private finding | section 6: private findings stay in `stella-rain/app`; `TR-03` checks the issues themselves |
 
