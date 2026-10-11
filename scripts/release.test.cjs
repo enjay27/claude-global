@@ -30,45 +30,13 @@ function git(cwd, ...args) {
 }
 
 function release(cwd, ...args) {
-  return releaseWith({ RELEASE_SKIP_TESTS: "1" }, cwd, ...args);
-}
-
-function releaseWith(env, cwd, ...args) {
   return execFileSync(process.execPath, [path.join(__dirname, "release.cjs"), ...args], {
     cwd,
-    env: { ...process.env, RELEASE_DATE: "2026-10-12", ...env },
+    env: { ...process.env, RELEASE_DATE: "2026-10-12" },
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
 }
-
-test("prepare pushes a stamped release branch; tag tags main once it is merged", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "release-"));
-  const origin = path.join(root, "origin.git");
-  const dev = path.join(root, "dev");
-  git(root, "init", "-q", "--bare", "-b", "main", origin);
-  git(root, "clone", "-q", origin, dev);
-  git(dev, "symbolic-ref", "HEAD", "refs/heads/main");
-  git(dev, "config", "user.email", "t@t");
-  git(dev, "config", "user.name", "t");
-  fs.writeFileSync(path.join(dev, "CLAUDE.md"), "Global rules: v2026.10.09\n\nA rule.\n");
-  git(dev, "add", "-A");
-  git(dev, "commit", "-q", "-m", "first");
-  git(dev, "tag", "v2026.10.09");
-  git(dev, "push", "-q", "origin", "main", "v2026.10.09");
-
-  // tag before the release branch is merged: main's stamp is already released
-  assert.throws(() => release(dev, "tag"), /already released/);
-
-  release(dev, "prepare", "One rule reworded");
-  assert.strictEqual(git(origin, "log", "-1", "--format=%s", "release/v2026.10.12"), "Release v2026.10.12: One rule reworded");
-  assert.match(git(origin, "show", "release/v2026.10.12:CLAUDE.md"), /^Global rules: v2026\.10\.12\n\nA rule\.$/);
-
-  git(origin, "update-ref", "refs/heads/main", "refs/heads/release/v2026.10.12"); // the PR merge
-  release(dev, "tag");
-  assert.strictEqual(git(origin, "rev-parse", "v2026.10.12^{commit}"), git(origin, "rev-parse", "main"));
-  assert.throws(() => release(dev, "tag"), /already released/);
-});
 
 // A release starts from one origin, one clone on main, one release v2026.10.09.
 function released() {
@@ -88,20 +56,10 @@ function released() {
   return { origin, dev };
 }
 
-test("prepare whose tests fail leaves no branch, no change, and the starting branch checked out", () => {
-  const { origin, dev } = released();
-  assert.throws(() => releaseWith({ RELEASE_FAIL_TESTS: "1" }, dev, "prepare", "x"), /tests failed/);
-  assert.strictEqual(git(dev, "rev-parse", "--abbrev-ref", "HEAD"), "main");
-  assert.strictEqual(git(dev, "status", "--porcelain"), "");
-  assert.strictEqual(git(dev, "branch", "--list", "release/*"), "");
-  assert.strictEqual(git(origin, "branch", "--list", "release/*"), "");
-});
-
-test("prepare refuses a dirty working tree", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "release-"));
-  git(root, "init", "-q", "-b", "main");
-  fs.writeFileSync(path.join(root, "x"), "x");
-  assert.throws(() => release(root, "prepare", "x"), /uncommitted changes/);
+test("prepare and tag are gone: a release is the Release workflow on rc", () => {
+  const { dev } = released();
+  assert.throws(() => release(dev, "prepare", "x"), /usage: release\.cjs next \| stamp <tag> \| latest/);
+  assert.throws(() => release(dev, "tag"), /usage: release\.cjs next \| stamp <tag> \| latest/);
 });
 
 // The Release workflow (.github/workflows/release.yml) on rc: next, stamp, latest.
