@@ -142,7 +142,7 @@ claude-global/
     *.test.cjs
   settings.global.json    the hook entries that global-sync merges into ~/.claude/settings.json
   setup/cloud-setup.sh    the text pasted into the cloud environment's setup script
-  scripts/release.cjs     next / stamp / latest for the Release workflow; prepare / tag (old flow)
+  scripts/release.cjs     next / stamp / latest, called by the Release workflow
   scripts/*.test.cjs      release tests; repository checks (allowlist, sparse list, stamp)
   docs/                   this plan, refactor-plan.md
   README.md
@@ -228,8 +228,8 @@ machine. So:
   line 1 of `CLAUDE.md` (`stamp`), runs all tests on that tree, and creates one commit with the
   stamp whose parent is the `rc` commit, the tag on it and a GitHub release. `rc` and `main` are
   never written, so the stamped commit is reachable only from its tag. The stamp and the tag
-  therefore cannot differ. The earlier two-phase `release.cjs prepare` / `tag` on `main` stays
-  until the first workflow release works, then goes.
+  therefore cannot differ. The earlier two-phase `release.cjs prepare` / `tag` on `main` was
+  removed after the first workflow release, `v2026.10.11`.
 - A tag ruleset on GitHub lets only Kade and GitHub Actions create `v*` tags and nobody move or
   delete them; `main` and `rc` require a PR.
 - `global-sync.cjs` is the one file whose bug could stop updates everywhere, since it updates
