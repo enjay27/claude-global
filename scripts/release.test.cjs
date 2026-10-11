@@ -103,3 +103,55 @@ test("prepare refuses a dirty working tree", () => {
   fs.writeFileSync(path.join(root, "x"), "x");
   assert.throws(() => release(root, "prepare", "x"), /uncommitted changes/);
 });
+
+// The Release workflow (.github/workflows/release.yml) on rc: next, stamp, latest.
+function rcCheckout() {
+  const { dev } = released();
+  fs.writeFileSync(path.join(dev, "CLAUDE.md"), "Global rules: v2026.10.09\n\nA rule.\nAnother rule.\n");
+  git(dev, "commit", "-q", "-am", "second rule");
+  return dev;
+}
+
+// What the workflow's tag job does with the API: a commit with the stamp whose parent is HEAD.
+function tagStampedChild(dev, tag) {
+  const head = git(dev, "rev-parse", "HEAD");
+  fs.writeFileSync(path.join(dev, "CLAUDE.md"), r.setStamp(fs.readFileSync(path.join(dev, "CLAUDE.md"), "utf8"), tag));
+  git(dev, "add", "CLAUDE.md");
+  const tree = git(dev, "write-tree");
+  const commit = git(dev, "commit-tree", tree, "-p", head, "-m", `Release ${tag}`);
+  git(dev, "tag", tag, commit);
+  git(dev, "checkout", "-q", "--", ".");
+  git(dev, "reset", "-q", "--hard", head);
+}
+
+test("next prints the tag for today, with a counter when today is taken", () => {
+  const dev = rcCheckout();
+  assert.strictEqual(release(dev, "next").trim(), "v2026.10.12");
+  git(dev, "tag", "v2026.10.12", "HEAD~1");
+  assert.strictEqual(release(dev, "next").trim(), "v2026.10.12.2");
+});
+
+test("next refuses a commit that is already released as a stamped child", () => {
+  const dev = rcCheckout();
+  tagStampedChild(dev, "v2026.10.12");
+  assert.throws(() => release(dev, "next"), /already released as v2026\.10\.12/);
+});
+
+test("stamp writes the tag into line 1 of CLAUDE.md and nothing else", () => {
+  const dev = rcCheckout();
+  release(dev, "stamp", "v2026.10.12");
+  assert.strictEqual(fs.readFileSync(path.join(dev, "CLAUDE.md"), "utf8"), "Global rules: v2026.10.12\n\nA rule.\nAnother rule.\n");
+  assert.strictEqual(git(dev, "status", "--porcelain", "--untracked-files=all"), "M CLAUDE.md");
+});
+
+test("stamp refuses a name that is not a release tag", () => {
+  const dev = rcCheckout();
+  assert.throws(() => release(dev, "stamp", "2026.10.12"), /not a release tag/);
+});
+
+test("latest prints the highest release tag, ignoring other v tags", () => {
+  const dev = rcCheckout();
+  git(dev, "tag", "v0.0.0-probe");
+  git(dev, "tag", "v2026.10.09.2");
+  assert.strictEqual(release(dev, "latest").trim(), "v2026.10.09.2");
+});

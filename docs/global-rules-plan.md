@@ -142,7 +142,7 @@ claude-global/
     *.test.cjs
   settings.global.json    the hook entries that global-sync merges into ~/.claude/settings.json
   setup/cloud-setup.sh    the text pasted into the cloud environment's setup script
-  scripts/release.cjs     prepare: stamp CLAUDE.md on a release branch; tag: tag the merged main
+  scripts/release.cjs     next / stamp / latest for the Release workflow; prepare / tag (old flow)
   scripts/*.test.cjs      release tests; repository checks (allowlist, sparse list, stamp)
   docs/                   this plan, refactor-plan.md
   README.md
@@ -222,12 +222,16 @@ leaves every other key and hook alone, and an unreadable `settings.json` untouch
 **A tag is a release.** Pushing `v2026.10.12` reaches every session at its next start, on every
 machine. So:
 
-- `scripts/release.cjs` is the only way to tag. `main` takes changes only through PRs, so it has
-  two phases. `prepare "<what changed>"` picks the next tag from today's date, writes it into
-  line 1 of `CLAUDE.md` on `release/<tag>`, runs all tests, commits and pushes; Kade merges the PR.
-  `tag` then checks that `origin/main` carries a stamp newer than every release, runs the tests on
-  that commit, tags it and pushes the tag. The stamp and the tag therefore cannot differ.
-- A tag ruleset on GitHub lets only Kade create `v*` tags, and `main` requires a PR.
+- Since 2026-10-11 a release is the **Release** workflow (`.github/workflows/release.yml`), which
+  Kade starts on `rc` after merging a PR from `main` into `rc`. It picks the next tag from the UTC
+  date (`scripts/release.cjs next`, which refuses an `rc` commit already released), writes it into
+  line 1 of `CLAUDE.md` (`stamp`), runs all tests on that tree, and creates one commit with the
+  stamp whose parent is the `rc` commit, the tag on it and a GitHub release. `rc` and `main` are
+  never written, so the stamped commit is reachable only from its tag. The stamp and the tag
+  therefore cannot differ. The earlier two-phase `release.cjs prepare` / `tag` on `main` stays
+  until the first workflow release works, then goes.
+- A tag ruleset on GitHub lets only Kade and GitHub Actions create `v*` tags and nobody move or
+  delete them; `main` and `rc` require a PR.
 - `global-sync.cjs` is the one file whose bug could stop updates everywhere, since it updates
   itself. It stays small, has the most tests, and every release is first tried in one session
   before Kade relies on it. Tags cannot be moved or deleted, so a bad release is fixed by a newer
