@@ -8,8 +8,10 @@
 //
 // Events:
 //   UserPromptSubmit         at the warning line Claude answers, then adds one line with the number;
-//                            at the handoff line it stops first and offers the choices (handoff +
-//                            new session, /compact, continue). Kade also sees a one-line warning.
+//                            at the handoff line it first recommends a handoff and offers the
+//                            choices (handoff + new session, /compact, continue), then answers
+//                            the prompt: it recommends, never forces. Kade also sees a one-line
+//                            warning.
 //                            Each level fires once until usage drops again.
 //   SessionStart (compact)   after a compaction: tells Claude to say so and offer a handoff.
 //
@@ -169,13 +171,15 @@ function decide(input, transcriptText, previousLevel, env) {
   const context =
     level === 2
       ? `context-guard: the context holds ${used}, past the ${fmt(handoff)} handoff line. ` +
-        "Before doing anything for this prompt, tell Kade the number and recommend a handoff. " +
-        "Do not start new multi-step work until he answers. " +
-        CHOICES
+        "In the first line of your reply, tell Kade the number and recommend a handoff. " +
+        CHOICES +
+        " Recommend, never force: then carry on with this prompt as usual in the same reply " +
+        "(for a totally different type of task, ask and wait, as the handoff-trigger skill says)."
       : `context-guard: the context holds ${used} (warning line ${fmt(warn)}). ` +
         "Answer this prompt, then at the end add one line telling Kade the number and that a " +
         "handoff will be recommended at " +
-        `${fmt(handoff)}. Do not offer a handoff before then.`;
+        `${fmt(handoff)}. Do not recommend a handoff before then; if this prompt starts a ` +
+        "totally different type of task, ask whether to hand off (the handoff-trigger skill).";
 
   return {
     level,

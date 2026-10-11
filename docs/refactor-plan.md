@@ -80,9 +80,9 @@ the check automatic in Claude Code sessions (terminal and cloud):
   there carries the request's `usage`. Input + cache creation + cache read is the same number the
   status line shows as context used.
 - **UserPromptSubmit:** at **300k tokens** Claude answers, then adds one line with the number; at
-  **400k** it stops before the prompt's work, recommends a handoff, and offers three choices: handoff and
-  a new session (`session-handoff`), `/compact` with a focus, or continue. Kade also sees a
-  one-line warning. Each level fires once, and re-arms when usage drops after a compaction.
+  **400k** it first recommends a handoff and offers three choices: handoff and a new session
+  (`session-handoff`), `/compact` with a focus, or continue; then it answers the prompt (recommend,
+  never force; since 2026-10-11). Kade also sees a one-line warning. Each level fires once, and re-arms when usage drops after a compaction.
 - **SessionStart, matcher `compact`:** right after a compaction, Claude says so and offers the
   same choices.
 - The lines are token counts capped at a share of the window: warn at 300k but never later than

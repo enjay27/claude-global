@@ -98,6 +98,19 @@ test("recommends a handoff at 400k even after the warning", () => {
   assert.strictEqual(out.output.systemMessage, "Context 410k tokens (41%) used: handoff recommended");
 });
 
+test("the 400k handoff is recommended, never forced: the prompt is still answered", () => {
+  const context = g.decide(prompt, entry(0, 409000), 1, {}).output.hookSpecificOutput.additionalContext;
+  assert.doesNotMatch(context, /until he answers/);
+  assert.match(context, /then carry on with this prompt/i);
+});
+
+test("the 300k warning leaves room to ask about a handoff for a different type of task", () => {
+  const context = g.decide(prompt, entry(0, 309000), 0, {}).output.hookSpecificOutput.additionalContext;
+  assert.doesNotMatch(context, /Do not offer a handoff/);
+  assert.match(context, /Do not recommend a handoff before then/);
+  assert.match(context, /different type of task/);
+});
+
 test("a 200k window warns at 40% and recommends the handoff at 60%", () => {
   const env = { CLAUDE_CONTEXT_WINDOW: "200000" };
   assert.strictEqual(g.decide(prompt, entry(0, 78000), 0, env), null); // 79k: just under 80k
