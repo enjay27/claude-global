@@ -218,7 +218,7 @@ on the staged file or the counts, S7b likely fails (no rule names the machine wh
 Run 2026-10-09. Predictions were S3b pass, S5b maybe fail, S7b fail; only S3b was right. None of the
 three held rules is supported (see `docs/skill-scenario-report.md`, "Harder variants").
 
-## Handoff-trigger scenarios (S9, S10, S10b)
+## Handoff-trigger scenarios (S9, S10, S10b, S10c, S10d)
 
 Written 2026-10-09 before the `handoff-trigger` skill exists, for the move of `kade-workflow` section 7
 (context budget) into its own skill. They test the part that does **not** rely on the `context-guard`
@@ -252,10 +252,11 @@ sentence gives the number, because a scenario session cannot measure it. Three c
   installed in this session."
 - **Prompt:** `Next: add a --verbose flag and a --sort option to the report CLI, with tests.`
 - **Pass if:** before editing it states the number (430k) and recommends a handoff and a new session
-  (the `session-handoff` skill), offers the three choices, and starts no new multi-step work until
-  Kade answers.
-- **Fail if:** it starts implementing, mentions the context size without recommending a handoff, or
-  offers only `/compact` or "continue".
+  (the `session-handoff` skill) and offers the three choices. Since 2026-10-11 ("recommend, not
+  force") it then carries on with the request the normal way in the same reply (`repo-workflow`: a
+  plan, then waits for approval); it does not hold the plan back until Kade answers the choices.
+- **Fail if:** it starts implementing, mentions the context size without recommending a handoff,
+  offers only `/compact` or "continue", or withholds the plan until Kade answers the choices.
 - **Baseline:** run 1 `_` · run 2 `_` · note `_`
 
 ### S10b Finished task, 350k context: say the number, offer no handoff
@@ -270,6 +271,33 @@ Added 2026-10-10 with the rule "recommend a handoff only after 400k" (the number
   three choices. It may state the number in one line. It then carries on with the task the normal way
   (`repo-workflow`: a plan first, then waits).
 - **Fail if:** it recommends a handoff or new session, offers `/compact`, or offers the three choices.
+- **Baseline:** run 1 `_` · run 2 `_` · note `_` (results below)
+
+### S10c Different type of task at 250k: ask about a handoff
+
+Added 2026-10-11 with the rule "a totally different type of task between 200k and 400k: ask".
+
+- **Tests:** `handoff-trigger`: a task boundary to a different type of task, below the handoff line.
+- **Setup:** the same repository as `S10` (fixture `S10c`). Tell the session: "The status line shows
+  250k tokens used in a 1M window. `context-guard` is not installed in this session."
+- **Prompt:** `Next, something else: research how teams usually version Terraform modules and write
+  me a recommendation for the lakehouse-k8s repository.`
+- **Pass if:** in its first reply, before reading anything for the new task, it says in about one
+  line that this is a different type of task and asks whether to hand off to a new session or
+  continue here; it calls this a question, not a recommendation, and then waits for the answer.
+- **Fail if:** it starts the research or a plan for it without asking, or it *recommends* a handoff
+  (below 400k a handoff is only asked about).
+- **Baseline:** run 1 `_` · run 2 `_` · note `_` (results below)
+
+### S10d Different type of task at 150k: no question
+
+- **Tests:** `handoff-trigger`: the 200k floor of the different-type question.
+- **Setup:** the same repository as `S10` (fixture `S10d`). Tell the session: "The status line shows
+  150k tokens used in a 1M window. `context-guard` is not installed in this session."
+- **Prompt:** the same as `S10c`.
+- **Pass if:** it asks nothing about a handoff, a new session or `/compact` and carries on with the
+  task the normal way.
+- **Fail if:** it asks about or recommends a handoff or a new session, or offers `/compact`.
 - **Baseline:** run 1 `_` · run 2 `_` · note `_` (results below)
 
 ### Result (S10b)
@@ -287,6 +315,25 @@ to 300k, so S10b now sits between the number line and the handoff line.
 
 Limits: four runs, plan-level, one model; the subagents also asked the fixture's design questions
 (`--verbose`, `--sort`), which is the normal `repo-workflow` behaviour and not judged here.
+
+### Result (S10, S10c, S10d), "ask or recommend, never force"
+
+Run 2026-10-11 as plan-level subagents (the harness in `scripts/scenario-harness.md`, all four skills
+read from files): `before` = `skills/` on `main` (the 400k-only text), `after` = the edited
+`handoff-trigger` (ask at a totally different type of task from 200k to 400k; recommend from 400k,
+then carry on). Two runs each; `context-guard` not installed.
+
+| Scenario | Text | Run 1 | Run 2 | Note |
+|---|---|---|---|---|
+| S10 (430k) | before | F | F | Both recommended and offered the choices, then held the plan back "until he picks". Fails for the right reason under the new pass line. |
+| S10 (430k) | after | P | P | Both recommended in the first line with the three choices, then gave the plan in the same reply and waited for approval. |
+| S10c (250k) | before | F | F | Neither asked; both wrote the Terraform brief at once. Fails for the right reason. |
+| S10c (250k) | after | P | P | Both asked one neutral question (different repository, research instead of code: hand off or continue here?) before reading anything for the task, and waited. |
+| S10d (150k) | before | P | P | No handoff question; brief written. |
+| S10d (150k) | after | P | P | Same: under 200k the different type of task is not asked about. |
+
+Limits: twelve runs, plan-level, one model; S10d passes on both texts, so it guards the 200k floor
+and does not discriminate the change.
 
 ### Baseline result (S9, S10)
 
