@@ -4,8 +4,8 @@
   report** checks them against the global rules and a catalog of controls, and files violations
   as issues. The **daily result report** says, per owner, what moved in the last day and what
   waits on Kade.
-- **Status:** **proposed** (2026-10-11, revised the same day). Kade accepts it in a commit of
-  its own after reading the final text; nothing in section 9 is built before that.
+- **Status:** **accepted** (2026-10-11, by Kade, in the merge of this change). Section 9 is
+  built step by step from here, each step one PR.
 - **Related:** `docs/repo-rules-review.html` (the 2026-10-11 audit the drift report turns into a
   standing check), `docs/global-rules-plan.md` (how the global rules reach a session).
 - **Decided by Kade, 2026-10-11:**
