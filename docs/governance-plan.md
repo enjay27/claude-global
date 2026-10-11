@@ -1,90 +1,148 @@
-# Plan: repository governance, checked every day
+# Plan: two daily reports, drift and daily results
 
-- **Scope:** one catalog of controls that every repository of Kade's (`enjay27`, `stella-rain`,
-  `star-resonance`) is held to, a profile per organization and per repository, a checker, and a
-  daily Claude run that files the violations as issues where the work belongs.
-- **Status:** **proposed** (2026-10-11). Kade accepts it in a commit of its own after reading
-  the final text; nothing in section 8 is built before that.
-- **Related:** `docs/repo-rules-review.html` (the 2026-10-11 audit this plan turns into a
+- **Scope:** two reports Claude makes every day over Kade's working repositories. The **drift
+  report** checks them against the global rules and a catalog of controls, and files violations
+  as issues. The **daily result report** says, per owner, what moved in the last day and what
+  waits on Kade.
+- **Status:** **proposed** (2026-10-11, revised the same day). Kade accepts it in a commit of
+  its own after reading the final text; nothing in section 9 is built before that.
+- **Related:** `docs/repo-rules-review.html` (the 2026-10-11 audit the drift report turns into a
   standing check), `docs/global-rules-plan.md` (how the global rules reach a session).
-- **Decided by Kade, 2026-10-11** (answers to the four questions of the proposal):
-  1. The daily run **files issues only**: it opens, updates and closes one issue per violation;
-     it never pushes, comments on PRs or edits a repository.
-  2. The daily summary is a **private Artifact page**, republished at one URL.
-  3. The run starts every day at **09:10 KST**.
-  4. The governance files live **centrally in this repository**; no governance file per
-     repository.
+- **Decided by Kade, 2026-10-11:**
+  1. Two reports, not one: drift (rules and workflows, across all working repositories) and
+     daily results (per owner).
+  2. The working repositories are those of **stella-rain**, **star-resonance** and
+     **enjay27/lakehouse** (section 3); not `lakehouse-k8s`, not Kade's other repositories.
+  3. Both run **every day, weekends included**. A day on which nothing changed is still
+     reported, and no change means no new drift.
+  4. The drift report **files issues only**: it opens, updates and closes one issue per
+     violation; it never pushes, comments on PRs or edits a repository. The daily result report
+     writes nothing anywhere but its pages.
+  5. Reports are **private Artifact pages**, each republished at one URL.
+  6. The daily run starts at **09:10 KST**.
+  7. Governance files live **centrally in this repository**; no governance file per repository.
 
 ## 1. The question
 
-The audit of 2026-10-11 found the global rules followed unevenly: workflows without
-`permissions: {}`, a missing `.gitattributes`, an unguarded auto-merge, documentation that
-claims what the code does not do, and a bridge that had been failing for two days with nobody
-told. Every one of those was visible from the repositories and the Actions API; none was
-checked. The global rules have exactly two machine checks today (`claude_md_check.py`, in two
-copies, and this repository's test of its own workflows). How do the rules get checked every
-day, and how does a finding reach the repository that has to act on it?
+The audit of 2026-10-11 found the global rules followed unevenly, and found a bridge that had
+been failing for two days with nobody told. Both were visible from the repositories and the
+Actions API; neither was checked. Two different questions follow, at two different speeds:
 
-## 2. What exists today
+- **Are the repositories still following the rules?** Changes slowly; a violation stays open for
+  days; the answer is work in the repository concerned. That is the drift report.
+- **What moved yesterday, and what needs Kade today?** Changes every day; the answer is a
+  morning read. That is the daily result report.
 
-| Rule area | Machine check today | Where |
+## 2. The two reports
+
+| | Drift report | Daily result report |
 |---|---|---|
-| `CLAUDE.md` and rules size (G22) | `claude_md_check.py`, an inline CI step | stella-rain, lakehouse, resonance-stream |
-| Line endings (G20) | `eol-check.yml`, `repo_check.py` | stella-rain (app, core, `.github`), star `.github`, lakehouse |
-| Workflow hardening (G19) | this repository's `repo.test.cjs`, on itself only | claude-global |
-| Secrets (G17) | `repo_check.py` | lakehouse; stella-rain `.github` (no caller) |
-| Overrides declared (G2), merge model (G14), docs true, run health | none | – |
+| Question | Do the working repositories follow the global rules and the controls? | What moved in the last day, what waits on Kade, what is next? |
+| Covers | All working repositories at once | One page per owner: stella-rain, star-resonance, lakehouse |
+| Reads | Each repository at `origin/main`, the Actions API | `STATUS.md` snapshots, PRs, issues, labels, runs, tags |
+| Writes | Issues in the repository concerned (section 6); one page | Its three pages only |
+| Routine | 09:40 KST daily | 09:10 KST daily |
+| Full Claude judgement | Mondays, after a global-rules release, and for any repository whose `main` changed | Every run |
 
-Each repository's `CLAUDE.md` already says how to work there. A governance document per
-repository that repeated it would be a third copy to drift, like the ported scripts in section 8
-of the audit. So governance holds only what can be checked, and where a repository departs from
-it on purpose.
+Two Routines rather than one: if one fails, the other still reports, and each can be paused
+alone. The drift run starts later so that the daily page of the same morning can link to it as
+"yesterday's drift"; the daily page never waits for it.
 
-## 3. Design
+## 3. Working repositories
+
+| Owner | Repositories | State lives in |
+|---|---|---|
+| stella-rain | `app` (private), `core`, `moderation`, `stage-template`, `.github` | the Stella Rain Project, `STATUS.md` on `app`'s `status` branch |
+| star-resonance | `resonance-stream`, `resonance-lab`, `.github` (private) | the Resonance Project, `STATUS.md` on each repository's `status` branch |
+| enjay27 | `lakehouse` | its own labelled issues (no Project) |
+
+`claude-global` and `claude-skills` are the rules' own source, not working repositories: their
+own tests cover them, and neither report reads them except to know the current global release.
+Adding a repository is one profile file (section 5).
+
+## 4. Daily result report
+
+One page per owner, republished at the same URL every day at 09:10 KST, for the 24 hours
+before the run. The sections, in this order:
+
+1. **Waiting on Kade.** Issues assigned to him; PRs only he merges (drafts, workflow changes,
+   repositories without auto-merge, PRs into `rc`); `cmd:verify-needs-<machine>` items, by
+   machine; anything older than 3 days marked as such.
+2. **Last 24 hours.** PRs merged, each with its *NOT VERIFIED* and *Wrong turns* lines quoted;
+   issues opened and closed; releases and tags.
+3. **In flight.** Open `claude/*` PRs with their CI state on the head; `cmd:status-now` issues;
+   branches older than a week with no PR.
+4. **Health.** Failed runs on `main`, on schedules and on issue events; the age of `STATUS.md`
+   (older than 24 hours is a red line); bridge runs.
+5. **Drift, in one line.** Counts from the latest drift report, new `broken` items named, linked.
+6. **Next.** Two or three proposed tasks for the owner, each with its gate and whether a cloud
+   session can run it, as `session-resume` would propose them.
+
+A day with no activity is a page that says so in one line per section, with the health and
+drift lines still checked. The report reads the Project through `STATUS.md` and never rebuilds
+it; lakehouse, which has no Project, is read from its labelled issues.
+
+The page about stella-rain names private `app` issues and PRs: the pages are private, and are
+shared only by Kade from the page's Share menu.
+
+## 5. Drift report: files
 
 ```
 claude-global/
   governance/
-    controls.json            the catalog: one entry per control (section 4)
-    orgs/<org>.json          stella-rain, star-resonance, enjay27
+    controls.json            the catalog (section 7)
+    orgs/<owner>.json        stella-rain, star-resonance, enjay27
     repos/<owner>__<repo>.json
-    routine.md               what the daily run does, step by step (section 6)
+    daily.md                 what the daily result run does, step by step
+    drift.md                 what the drift run does, step by step
   scripts/
     governance-check.cjs     checks every control a script can check; JSON out
     governance-check.test.cjs
-  .github/workflows/test.yml runs the tests (unchanged: node --test finds them)
 ```
 
-- **JSON, not YAML**, and **Node's standard library only**: this repository has no
-  `package.json` and no dependency today. Workflow files are read with line patterns, the way
-  `repo.test.cjs` already checks this repository's own; section 9 names the limit.
+- **JSON and Node's standard library only**, as this repository has no `package.json` and no
+  dependency today. Workflow files are read with line patterns, as `repo.test.cjs` already
+  reads this repository's own; section 10 names the limit.
 - `governance/` and the new scripts are development-only: `deploy-exclude` keeps them out of
   `~/.claude`, and `repo.test.cjs` proves it.
-- **A control** has an ID, a title, the global rule it serves (G1 to G22 of the audit, or none),
-  a severity, where it applies (all repositories, public ones, those with workflows, ...), who
-  checks it (`script`, `api`, or `claude` for judgement), and how to fix it.
-- **Severity** decides what the run does:
+- **An owner profile** holds what its repositories share: the reusable-workflow repository, the
+  Project and its snapshot branch, the merge model, and where development issues of repositories
+  without their own tracker go.
+- **A repository profile** holds visibility, owner, merge model (`own-workflow`, `kade-merges`,
+  `github-auto-merge`), where its governance issues go, its exceptions, and the facts checks
+  compare against (which reusables it calls, which file it ports from where).
+- **An exception** lives in the repository's profile with a reason **and** in that repository's
+  `CLAUDE.md` under "Overrides of global rules" (control `RF-02`). An exception in only one of
+  the two is itself a violation.
+
+## 6. Drift report: severity and issues
 
 | Severity | Meaning | Issue |
 |---|---|---|
 | `broken` | something is failing or unsafe now | opened and **assigned to Kade**, no label (a decision that is his) |
 | `fix` | a rule is not followed | opened with the `governance` label, unassigned: a session can take it |
-| `advise` | a recommendation | none; listed on the summary page only |
+| `advise` | a recommendation | none; listed on the drift page only |
 
-- **An exception** lives in the repository's profile with a reason **and** must appear in that
-  repository's `CLAUDE.md` under "Overrides of global rules" (control `RF-02`). An exception in
-  only one of the two is itself a violation, so neither can drift silently.
-- **An organization profile** holds what its repositories share: the reusable-workflow
-  repository, the Project and its snapshot branch, the merge model, where development issues of
-  repositories without their own tracker go.
-- **A repository profile** holds: visibility, organization, merge model (`own-workflow`,
-  `kade-merges`, `github-auto-merge`), where its governance issues go, its exceptions, and the
-  facts the checks compare against (which reusables it calls, which file it ports from where).
+| Repository | Governance issues go to |
+|---|---|
+| lakehouse, app, core, resonance-stream, resonance-lab | the repository itself |
+| moderation, stella-rain `.github`, stage-template | `stella-rain/app` (moderation's issues are player reports; the others track work in app) |
+| star-resonance `.github` | `star-resonance/resonance-stream` (its `CLAUDE.md` says so) |
 
-## 4. Controls, first version
+- **One issue per repository and control.** Title `governance: <ID> <repository>: <title>`;
+  the body names the control, the evidence (file and line, or the run), how to fix it, and a
+  marker line `<!-- governance: <ID> <owner>/<repo> -->` the run finds it by.
+- The run **updates** the open issue when the evidence changes and **closes** it, with one line
+  naming the run that found it fixed, when the control passes. It never opens a duplicate.
+- A finding about a private repository is written only in a private repository's issue
+  (`stella-rain/app`); public issues never quote private files.
+- **No change, no new drift.** When no working repository's `main` changed, no global release
+  was made and it is not Monday, the run re-checks only the `api` controls (run health, the age
+  of `STATUS.md`) and carries the rest forward, saying so on the page.
 
-Built from the audit's findings; each becomes a fixture in the tests before its check is
-written (G5).
+## 7. Drift report: controls, first version
+
+Built from the audit's findings; each becomes a test fixture before its check is written (G5).
 
 | ID | Control | Rule | Sev. | Checked by |
 |---|---|---|---|---|
@@ -107,116 +165,94 @@ written (G5).
 | MG-03 | `main` is re-tested after merges made with `GITHUB_TOKEN` (a dispatch or a weekly schedule) | G16 | fix | script |
 | HL-01 | No workflow has failed twice in a row on `main`, on a schedule, or on issue events | G16 | broken | api |
 | HL-02 | A scheduled workflow has run within twice its interval | – | fix | api |
-| HL-03 | The organization's `STATUS.md` is younger than 24 hours | – | broken | api |
+| HL-03 | The owner's `STATUS.md` is younger than 24 hours | – | broken | api |
 | TR-01 | Visibility, callers and copies a document claims match the repository (public/private, "called by", "copy at &lt;commit&gt;") | G18 | fix | claude |
 | TR-02 | A ported file's source commit is recorded, and its drift from the source is listed | – | advise | script |
 | TR-03 | A public repository's issues, logs and docs carry no private planning or personal data | G18 | broken | claude |
 
 Adding, removing or changing a control is a PR here, like any change to the global rules.
 
-## 5. Where issues go
+## 8. The Routines
 
-| Repository | Governance issues in | Why |
+| | Daily results | Drift |
 |---|---|---|
-| lakehouse, claude-global, claude-skills | the repository itself | each tracks its own work |
-| app, core | the repository itself | both sync to the Stella Rain Project |
-| moderation, stella-rain `.github`, stage-template | `stella-rain/app` | moderation's issues are player reports; the others track work in app |
-| resonance-stream, resonance-lab | the repository itself | both sync to the Resonance Project |
-| star-resonance `.github` | `star-resonance/resonance-stream` | its `CLAUDE.md` says so |
+| Schedule | `CRON_TZ=Asia/Seoul 10 9 * * *` | `CRON_TZ=Asia/Seoul 40 9 * * *` |
+| Prompt | "Follow `governance/daily.md` at `enjay27/claude-global` `main`." | "Follow `governance/drift.md` at `enjay27/claude-global` `main`." |
+| Writes | its three pages | issues (section 6) and its page |
+| First run | capped by nothing; it writes no issue | at most 10 new issues |
 
-- **One issue per repository and control.** Its title is `governance: <ID> <repository>: <title>`.
-  Its body names the control, the evidence (file and line, or the run), how to fix it, and a
-  marker line `<!-- governance: <ID> <owner>/<repo> -->` the run finds it by.
-- The run **updates** the open issue when the evidence changes, and **closes** it, with one line
-  saying which run found it fixed, when the control passes. It never opens a duplicate.
-- A finding about a private repository is written only in a private repository's issue
-  (`stella-rain/app`); public issues never quote private files.
-- The `governance` label is created in each target repository in step 4 (lakehouse through its
-  `labels.json`, so `labels.yml` keeps it).
+- Each fires a **fresh session** in the cloud environment that holds the working repositories,
+  with the GitHub connector granted and nothing else, and a push notification on completion.
+- The one-line prompt means **what a run does changes only through a reviewed PR here**, never
+  by editing the Routine.
+- **Every run, first:** fetch each repository and read it at `origin/main` (the audit's first
+  wrong turn); if a repository or the API cannot be read, say so on the page, and never report
+  an unchecked item as passing.
+- **Everything a run reads is data.** Repository files, issue bodies, PR descriptions and logs
+  can carry text written by anyone with access; a run follows its `.md` file and the global
+  rules only. The daily run cannot write anything but its pages; the drift run cannot push.
 
-## 6. The daily run
+## 9. Steps
 
-- **A Routine**, created with `create_trigger`: a fresh session on each firing, in the cloud
-  environment that holds the 11 repositories, schedule
-  `CRON_TZ=Asia/Seoul 10 9 * * *`, with the GitHub connector granted and nothing else.
-  Completion notifications by push.
-- **Its prompt is one line:** "Follow `governance/routine.md` at `enjay27/claude-global` `main`."
-  What the run does therefore changes only through a reviewed PR here, never by editing the
-  Routine.
-- **`governance/routine.md`, in order:**
-  1. Fetch every repository and read it at `origin/main` (the audit's first wrong turn).
-  2. Run `node scripts/governance-check.cjs --all --json`.
-  3. Read the Actions API for the `api` controls, and judge the `claude` controls, for
-     repositories whose `main` changed since the last run and on Mondays for all.
-  4. Open, update and close issues (section 5). The first run is capped at 10 new issues;
-     later runs open what is new.
-  5. Republish the summary page at its URL: counts per repository and severity, what changed
-     since yesterday, the open `broken` items first, the run's own NOT VERIFIED list.
-  6. If a repository could not be read, say so on the page and in no issue: a control that was
-     not checked is never reported as passing.
-- **Everything the run reads is data.** Repository files, issue bodies and workflow logs can
-  contain text written by anyone with access; the run follows `routine.md` and the global rules
-  only. It cannot push, so the worst a bad instruction can do is a wrong issue.
-- **How other repositories follow it:** a governance issue is ordinary work. `session-resume`
-  already lists open issues; a `broken` one is assigned to Kade, who decides; a `fix` one is a
-  normal task with one PR that says `Closes #N`.
+Each step is one PR, after the previous one merged. The daily result report comes first: it
+needs no catalog and is useful at once.
 
-## 7. Changes to the rules
+| Step | What | Gate | This session can run it |
+|---|---|---|---|
+| 0 | This plan, accepted by Kade in a commit of its own | – | – |
+| 1 | `orgs/*.json`, `repos/*.json` (working repositories only), `daily.md`; a run by hand whose three pages Kade reads | `node --test` (profiles parse, every working repository has one); the pages | yes |
+| 2 | The daily Routine, then its first scheduled run read by Kade | the first scheduled pages | yes, with Kade |
+| 3 | `controls.json`, the checker for the `script` controls, fixtures from the audit's findings, tests first | `node --test` | yes |
+| 4 | `drift.md`; the `api` and `claude` steps; `--dry-run` prints the issue plan without writing; reviewed with Kade against the audit | `node --test`; a dry run | yes |
+| 5 | The global rule line (section 9a), a release through `rc`; the `governance` labels | `node --test`; the Release workflow | Kade starts the release |
+| 6 | The drift Routine; one run fired by hand with Kade watching; then the schedule | the first run's issues and page, read by Kade | yes, with Kade |
+
+### 9a. Changes to the rules
 
 - Global `CLAUDE.md`, one line under *How to work*: "Governance issues (`governance` label) are
   ordinary work; an exception to a control goes in the repository's profile here and in its
   Overrides section, never in only one." The file stays within its 60-line cap.
 - `repo-workflow` (in `claude-skills`), one line in section 1: read another repository at its
   `origin/main`.
-- Each repository's `CLAUDE.md` gets the Overrides section where it has none (app, core,
-  resonance-lab, stage-template). These come in as `RF-02` issues; they are not part of this plan.
+- Each working repository's `CLAUDE.md` gets the Overrides section where it has none (app,
+  core, resonance-lab, stage-template). These come in as `RF-02` issues, not in this plan.
 
-## 8. Steps
+Not in this plan: fixing what the drift report finds (those are its issues), a CI check that
+blocks PRs (possible later as a reusable workflow, once the controls are stable), and the
+audit's six proposed rule changes C1 to C6, which become controls or issues here.
 
-Each step is one PR, after the previous one merged.
+## 10. Open questions
 
-| Step | What | Gate | This session can run it |
-|---|---|---|---|
-| 0 | This plan, accepted by Kade in a commit of its own | – | – |
-| 1 | `controls.json`, the checker for the `script` controls, fixtures from the audit's findings, tests first | `node --test` | yes |
-| 2 | The three organization and eleven repository profiles; the checker run over today's clones, its output reviewed with Kade | `node --test`; a dry run | yes |
-| 3 | `routine.md`; the `api` and `claude` steps; `--dry-run` prints the issue plan without writing | `node --test`; a dry run | yes |
-| 4 | The global rule line (section 7), a release through `rc`; the `governance` labels | `node --test`; the Release workflow | Kade starts the release |
-| 5 | The Routine; one run fired by hand with Kade watching; then the schedule | the first run's issues and page, read by Kade | yes, with Kade |
-
-Not in this plan: fixing what the run finds (those are its issues), a CI check that blocks PRs
-(possible later as a reusable workflow, once the controls are stable), and the audit's six
-proposed rule changes C1 to C6, which become controls or issues here.
-
-## 9. Open questions
-
-1. **Does a fresh Routine session get all 11 repositories?** The Routine runs in this session's
-   environment; whether it starts with the same repositories, or must attach each with
-   `add_repo` (the private `stella-rain/app` included), is proved in step 5 before the schedule
-   is turned on. (This session has both `.github` repositories attached, so star-resonance
-   `.github`'s note that a cloud session cannot attach it looks stale; `TR-01` will check it.)
+1. **Does a fresh Routine session get every working repository?** A Routine runs in this
+   session's environment; whether it starts with the same repositories, or must attach each with
+   `add_repo` (private `stella-rain/app` and star-resonance `.github` included), is proved in
+   step 2 before the schedule is turned on. (This session has both `.github` repositories
+   attached, so star-resonance `.github`'s note that a cloud session cannot attach it looks
+   stale; `TR-01` will check it.)
 2. **Reading workflows without a YAML parser.** Line patterns cover the controls above for the
-   files as they are written today; a flow-style mapping (`permissions: {contents: read}`) or a
-   YAML anchor could hide from them. A dependency (a YAML parser) is Kade's call (G4); the
-   recommendation is no dependency until a pattern misses a real file.
+   files as they are written today; a flow-style mapping or a YAML anchor could hide from them.
+   A dependency (a YAML parser) is Kade's call (G4); the recommendation is none until a pattern
+   misses a real file.
 3. **Required checks and rulesets** cannot be read from a session today. `MG-01` uses the API
    if the token can read rulesets, and otherwise reports NOT VERIFIED.
 
-## 10. Risks
+## 11. Risks
 
 | Risk | Answer |
 |---|---|
-| Issue noise drowns real work | `advise` files nothing; first run capped at 10; one issue per control and repository |
+| Issue noise drowns real work | only the drift report files issues; `advise` files none; first run capped at 10; one issue per control and repository |
 | A false positive keeps reopening | an exception with a reason, in the profile and the Overrides section |
-| The run fails and nobody notices | the Routine's push notification; a summary page older than a day is visible as such |
-| Cost: a daily Claude session over 11 repositories | the script does the bulk; Claude judges only changed repositories, and all of them weekly; the first run's cost is measured and reported before the schedule starts |
-| Text in a repository steers the run | it reads everything as data and can only file issues |
-| A public issue leaks a private finding | section 5: private findings stay in `stella-rain/app`; `TR-03` checks the issues themselves |
+| A run fails and nobody notices | each Routine's push notification; each page shows its run time, so a stale page shows as stale; the daily page shows the drift page's age |
+| Cost: two daily Claude sessions | the daily run reads the API and `STATUS.md`, not code; the drift run does the bulk by script and judges only changed repositories, all of them on Mondays; the first runs' cost is reported before the schedules start |
+| Text in a repository steers a run | runs read everything as data; the daily run writes only its pages, the drift run only issues |
+| A public issue leaks a private finding | section 6: private findings stay in `stella-rain/app`; `TR-03` checks the issues themselves |
 
-## 11. How it is tested
+## 12. How it is tested
 
 - `scripts/governance-check.test.cjs`: one fixture per control, failing and passing, built from
-  the audit's real findings (for example, resonance-lab's `ci.yml` without `permissions`).
+  the audit's real findings (for example, resonance-lab's `ci.yml` without `permissions`); a test
+  that every working repository has a profile and every profile parses.
 - `repo.test.cjs` keeps proving that nothing under `governance/` reaches `~/.claude`.
-- `--dry-run` over today's clones; its output is compared with the audit by hand in step 2.
-- Step 5's first run is fired by hand and its issues read before the schedule starts.
+- The daily report's first pages are read by Kade before its schedule starts (step 1, step 2).
+- The drift report's `--dry-run` over today's clones is compared with the audit (step 4), and
+  its first real run is fired by hand (step 6).
