@@ -17,6 +17,7 @@ that move each repository onto them. Public. The account skills live in
 | `scripts/release.cjs` | `next`, `stamp <tag>`, `latest` | Called by the Release workflow |
 | `docs/global-rules-plan.md` | One global rule set checked out as `~/.claude` on every machine and in the cloud, plus rules per repository | Closed 2026-10-09; every step done |
 | `docs/refactor-plan.md` | Moving `CLAUDE.md`, `MEMORY.md`, skills and rules to this setup, per repository | Read by the session doing the work |
+| `docs/repo-rules-review.html` | 2026-10-11 audit: each repository's rules and workflows against the global rules, with advice and proposed global changes | Read as an Artifact page (the Mermaid diagrams render there); its actions become their own PRs |
 
 Each repository's `CLAUDE.md` keeps its own gates, paths and branch rules and names what it
 overrides of the global rules; nothing here holds repository-specific facts.
