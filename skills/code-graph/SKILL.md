@@ -16,7 +16,7 @@ and then calls `g`. Shell state does not carry between Bash calls, so paste the 
 each time:
 
 ```bash
-g() { local top nd; top=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "graft: not in a git repo" >&2; return 1; }; nd=$(dirname "$(dirname "$(readlink -f "$(command -v node)")")"); [ -f "$nd/include/node/node_api.h" ] && export npm_config_nodedir="$nd"; DO_NOT_TRACK=1 GRAFT_TRAIL_AUTOPUSH=0 npx -y "${GRAFT_PKG:-@nanonets/graft@latest}" --dir "${XDG_CACHE_HOME:-$HOME/.cache}/graft/$(printf %s "$top" | tr '/' '_')" "$@"; }
+g() { local top nd cache; top=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "graft: not in a git repo" >&2; return 1; }; nd=$(dirname "$(dirname "$(readlink -f "$(command -v node)")")"); [ -f "$nd/include/node/node_api.h" ] && export npm_config_nodedir="$nd"; cache="${XDG_CACHE_HOME:-$HOME/.cache}"; command -v cygpath >/dev/null 2>&1 && cache=$(cygpath -m "$cache"); DO_NOT_TRACK=1 GRAFT_TRAIL_AUTOPUSH=0 npx -y "${GRAFT_PKG:-@nanonets/graft@latest}" --dir "$cache/graft/$(printf %s "$top" | tr '/:' '__')" "$@"; }
 ```
 
 What the line does, so you can keep it intact:
@@ -26,6 +26,11 @@ What the line does, so you can keep it intact:
 - `--dir ~/.cache/graft/<repo path>` keeps the graph outside the repository, so Graft
   never writes `graft/`, `.gitignore` or `.ignore` into the repo. The working tree stays
   clean for Kade's GitOps repos.
+- On Windows in Git Bash the repository path is `C:/...` and `$HOME` is `/c/Users/...`. The
+  line turns the `:` into `_` like the slashes and passes the cache root through `cygpath -m`,
+  so Node gets `C:/Users/<name>/.cache/graft/C__...`. A `:` left in the folder name stops Git
+  Bash converting the path, and Node then reads it as `C:\c\Users\...`. Where `cygpath` does
+  not exist (macOS, Linux) the path is as before.
 - The graph lives there even when the repo has a `graft/` folder: that folder is left over
   from `graft init` (see *Leftover Graft wiring*), git-ignored, and safe to delete.
 - `npm_config_nodedir` points native builds at the local Node headers. Sandboxes that
