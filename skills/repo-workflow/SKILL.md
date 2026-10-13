@@ -15,6 +15,8 @@ them. When to recommend a handoff from the context size is the `handoff-trigger`
 - Locate the code first (graft if the repo has it, otherwise search), then present an impact
   analysis: which files change, what logic changes, what does not, which gate applies, and
   whether this session can run that gate.
+- **Read another repository at its `origin/main`**, fetched first (`git fetch origin main`),
+  never from a local or older clone: a stale clone gave the 2026-10-11 audit two false findings.
 - **A new module, crate or dependency is decided with Kade first**: bring the options, their
   trade-offs for long-term release maintainability (API and format stability, upgrade cost,
   tooling lock-in) and your recommendation, then build after he picks.
