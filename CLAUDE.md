@@ -49,7 +49,8 @@ For every repository of Kade's (`stella-rain`, `star-resonance`, `enjay27`), eve
 - In a public repository everything is public, issues and Actions logs included: no internal
   URLs, personal data or private planning. Those belong in a private repository.
 - GitHub workflows: `permissions: {}` at the top and per-job grants; `actions/checkout` with
-  `persist-credentials: false`; actions pinned to a major version.
+  `persist-credentials: false`; actions pinned to a major version, except
+  `dtolnay/rust-toolchain@stable` (no version tags: its ref names the toolchain).
 
 ## Machines and Claude's own files
 
