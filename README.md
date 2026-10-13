@@ -14,9 +14,11 @@ that move each repository onto them. Public. The account skills live in
 | `setup/cloud-setup.sh` | Checks this repository out into `~/.claude` in a cloud session | Pasted into the cloud environment's setup script |
 | `setup/local-setup.ps1`, `setup/local-setup.sh` | The same on a Windows PC (PowerShell, not Git Bash) and on macOS or Linux, once per machine | Run by Kade; they stop before overwriting anything |
 | `.github/workflows/release.yml` | Release: on `rc`, tags `vYYYY.MM.DD` (`.2` later the same day) on a commit that stamps line 1 of `CLAUDE.md`, with a GitHub release | Started by Kade (Actions → Release → Run on `rc`) after a PR from `main` into `rc` |
-| `scripts/release.cjs` | `next`, `stamp <tag>`, `latest` for the workflow; the older `prepare` / `tag` until the first workflow release | Called by the workflow |
+| `scripts/release.cjs` | `next`, `stamp <tag>`, `latest` | Called by the Release workflow |
 | `docs/global-rules-plan.md` | One global rule set checked out as `~/.claude` on every machine and in the cloud, plus rules per repository | Closed 2026-10-09; every step done |
 | `docs/refactor-plan.md` | Moving `CLAUDE.md`, `MEMORY.md`, skills and rules to this setup, per repository | Read by the session doing the work |
+| `docs/governance-plan.md` | Accepted: two daily reports over the working repositories, drift (rules and workflows, filed as issues) and daily results (per owner), built in `kade-agent/governance` | Built step by step (section 9) |
+| `docs/repo-rules-review.html` | 2026-10-11 audit: each repository's rules and workflows against the global rules, with advice and proposed global changes | Read as an Artifact page (the Mermaid diagrams render there); its actions become their own PRs |
 
 Each repository's `CLAUDE.md` keeps its own gates, paths and branch rules and names what it
 overrides of the global rules; nothing here holds repository-specific facts.
