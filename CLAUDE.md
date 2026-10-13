@@ -2,7 +2,7 @@ Global rules: v2026.10.09.5
 
 # Kade's global rules
 
-For every repository of Kade's (`stella-rain`, `star-resonance`, `enjay27`), everywhere.
+For every repository of Kade's (`stella-rain`, `star-resonance`, `enjay27`, `kade-agent`), everywhere.
 
 ## Precedence
 
@@ -15,14 +15,15 @@ For every repository of Kade's (`stella-rain`, `star-resonance`, `enjay27`), eve
 - Plan first: no edits on the first turn of a task. Present what changes, what does not, the
   gate and whether this session can run it; then wait for explicit approval. Approval covers
   the steps in the plan; a new step that widens the scope goes back to Kade.
-- A new module, crate, dependency or service is decided with Kade first: the options, their
-  long-term maintenance cost, a recommendation.
+- A new module, crate, dependency or service is Kade's call: options, upkeep cost, a recommendation.
 - Test first: a failing test before new behaviour or a fix, seen failing for the right reason.
   If something cannot be unit-tested, say so in the commit body.
 - At most 2 self-corrections on a failing gate, then stop and report.
 - A refactor changes no behaviour: move first, change later, never both in one commit.
 - Run the gate for every part touched. A gate that could not run is never reported as passed:
   name it as `NOT VERIFIED: <gate>: <reason>` in the commit body or the PR.
+- `governance` issues are ordinary work. A control's exception goes in both the repository's
+  profile in `kade-agent/governance` and its Overrides section, never in only one.
 
 ## Git and pull requests
 
@@ -32,8 +33,7 @@ For every repository of Kade's (`stella-rain`, `star-resonance`, `enjay27`), eve
 - Subject: the finding or the point of the change, not the files touched. Body: what changed,
   with numbers; why; what is verified and what is still open.
 - `git status` before `git add -A`, never after. Never commit work you did not do.
-- Never commit a broken or half-applied tree to save progress; use a branch. Never rewrite
-  history that is already pushed.
+- Never commit a broken or half-applied tree to save progress: use a branch. Never rewrite pushed history.
 - Local sessions: follow the repository's flow.
 - Cloud sessions: branch `claude/<task>` from an up-to-date `main`, push, open a PR, then turn
   on GitHub auto-merge for it, unless the repository merges through its own auto-merge
