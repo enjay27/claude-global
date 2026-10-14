@@ -5,7 +5,7 @@
 //
 //   next     the tag for today (vYYYY.MM.DD, or .2, .3 on the same day); refuses a HEAD already
 //            released as the parent of a stamped release commit
-//   stamp T  writes "Global rules: T" into line 1 of CLAUDE.md in the working tree
+//   stamp T  writes "Global rules: T" into line 1 of AGENTS.md in the working tree
 //   latest   the highest release tag, or nothing
 //
 // Tests for this file set RELEASE_DATE.
@@ -65,7 +65,7 @@ function stamp(tag) {
   if (!tag || latestRelease([tag]) !== tag) {
     throw new Error(`${tag || "(none)"} is not a release tag`);
   }
-  fs.writeFileSync("CLAUDE.md", setStamp(fs.readFileSync("CLAUDE.md", "utf8"), tag));
+  fs.writeFileSync("AGENTS.md", setStamp(fs.readFileSync("AGENTS.md", "utf8"), tag));
 }
 
 if (require.main === module) {
