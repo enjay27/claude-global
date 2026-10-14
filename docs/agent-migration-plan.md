@@ -3,8 +3,8 @@
 - **Scope:** the global rules, the account skills, the hooks and setup in this repository and
   `enjay27/claude-skills`; the drift and daily checks in `kade-agent/code-quality-assurance`;
   the instruction files of every working repository. Today all of it is written for Claude Code.
-- **Status:** **draft** (2026-10-14). Decisions 1 to 4 are Kade's; the repository name and the
-  Antigravity commit author are still open (section 6).
+- **Status:** **accepted** (2026-10-15, by Kade, in the merge of this change). Decisions 1 to 6
+  are his; nothing is open (section 6).
 - **Related:** `docs/global-rules-plan.md` (how the rules reach a session), `docs/governance-plan.md`
   (its decision 10: this repository and `claude-skills` move to `kade-agent` in a task of their
   own, an inventory of everything that names them first).
@@ -17,6 +17,10 @@
   3. `claude-global` and `claude-skills` are **transferred to `kade-agent`**; this one is renamed
      ("global" does not say what it is), the skills move into it and `claude-skills` is archived.
   4. Path-scoped rules: **copies plus an equality check** (section 3).
+- **Decided by Kade, 2026-10-15:**
+  5. This repository becomes **`kade-agent/agent-config`**.
+  6. Antigravity commits are authored **`Antigravity <antigravity@noreply.invalid>`**: `.invalid`
+     is a reserved domain, so no GitHub user can ever verify the address and claim the commits.
 
 ## 1. What each agent reads (official docs, read 2026-10-14)
 
@@ -112,9 +116,9 @@ Each step is one PR, merged before the next.
 
 ## 6. Open
 
-1. The new repository name. Proposed: `kade-agent/agent-config`; also `agent-home`, `ruleset`.
-2. Antigravity's commit author: a fixed name and a noreply address that is no GitHub user's.
-   No control checks authors today.
+Nothing. The two questions this section held are decisions 5 (the name, chosen over
+`agent-home` and `ruleset`) and 6 (the author, chosen over a Google address). No control checks
+authors today.
 
 ## 7. How it is tested
 
