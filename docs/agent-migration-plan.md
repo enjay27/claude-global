@@ -48,7 +48,7 @@ Fixtures in temporary folders and in `~/.gemini`, each holding a canary word; al
 | Claude, user level (`~/.claude/CLAUDE.md` → `@AGENTS.md`) | **NOT VERIFIED:** a temporary `CLAUDE_CONFIG_DIR` is not logged in, and credentials are not copied. Step 7 proves it on a real machine |
 | IDE: `~/.gemini/AGENTS.md` as one `@[label](~/...)` line | **Pass.** The canary was in the first reply, before any tool call: the include inlines and `~/` expands |
 | IDE: a skill in `~/.gemini/config/skills/` | **Pass.** It loaded and was opened as a skill file |
-| IDE: a hook in `~/.gemini/config/hooks.json` | **NOT VERIFIED: did not run.** Tried `SessionStart` (not in the IDE's docs), then `PreInvocation` with an `ephemeralMessage`; no log, no message. Cause unknown: the IDE may not read the global file, or a hook may need turning on under Customizations |
+| IDE: hooks | **Did not run, three tries.** `SessionStart` (not in the IDE's docs), then `PreInvocation` with an `ephemeralMessage`, then the same with `"enabled": true` in both `~/.gemini/config/hooks.json` and the workspace's `.agents/hooks.json`, each script logging before it reads stdin: no log, no message. IDE 1.107.0 starts no hook from either file; whether Customizations → Hooks lists them was not checked |
 | IDE: token usage in `transcript.jsonl` | **None.** No token or usage field in `transcript.jsonl` or `transcript_full.jsonl` |
 | `agy` CLI | **NOT VERIFIED:** not installed on this PC |
 
