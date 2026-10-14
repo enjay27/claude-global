@@ -12,7 +12,7 @@ const { readStamp, mergeSettings } = require("../hooks/global-sync.cjs");
 
 const ROOT = path.join(__dirname, "..");
 // Tracked but never deployed: the sparse checkout in ~/.claude leaves these out.
-const DEV_ONLY = ["setup/", "scripts/", "docs/", ".github/", ".claude/", "README.md", "deploy-exclude"];
+const DEV_ONLY = ["setup/", "scripts/", "docs/", ".github/", ".claude/", "agent-skills/", "README.md", "deploy-exclude"];
 
 function git(args, input) {
   return execFileSync("git", ["-C", ROOT, ...args], { encoding: "utf8", input, stdio: ["pipe", "pipe", "pipe"] });
