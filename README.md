@@ -1,8 +1,9 @@
-# claude-global
+# agent-config
 
 Kade's Claude configuration for every repository: the global rules, the hooks, and the plans
 that move each repository onto them. Public. The account skills live in
-[`enjay27/claude-skills`](https://github.com/enjay27/claude-skills).
+[`kade-agent/claude-skills`](https://github.com/kade-agent/claude-skills). This repository was
+`claude-global` under Kade's own account until 2026-10-15 (`docs/agent-migration-plan.md`, step 2).
 
 | Path | What | How it is used |
 |---|---|---|
@@ -14,10 +15,12 @@ that move each repository onto them. Public. The account skills live in
 | `setup/cloud-setup.sh` | Checks this repository out into `~/.claude` in a cloud session | Pasted into the cloud environment's setup script |
 | `setup/local-setup.ps1`, `setup/local-setup.sh` | The same on a Windows PC (PowerShell, not Git Bash) and on macOS or Linux, once per machine | Run by Kade; they stop before overwriting anything |
 | `.github/workflows/release.yml` | Release: on `rc`, tags `vYYYY.MM.DD` (`.2` later the same day) on a commit that stamps line 1 of `CLAUDE.md`, with a GitHub release | Started by Kade (Actions → Release → Run on `rc`) after a PR from `main` into `rc` |
+| `.github/workflows/project-sync.yml` | Adds issues to the Project "Kade Agent" and applies their `cmd:` labels, through the bridge in `kade-agent/.github` | Runs on issue events |
+| `.claude/CLAUDE.md` | This repository's own notes: where its state is, its gates | Read by sessions opened here; never deployed |
 | `scripts/release.cjs` | `next`, `stamp <tag>`, `latest` | Called by the Release workflow |
 | `docs/global-rules-plan.md` | One global rule set checked out as `~/.claude` on every machine and in the cloud, plus rules per repository | Closed 2026-10-09; every step done |
 | `docs/refactor-plan.md` | Moving `CLAUDE.md`, `MEMORY.md`, skills and rules to this setup, per repository | Read by the session doing the work |
-| `docs/governance-plan.md` | Accepted: two daily reports over the working repositories, drift (rules and workflows, filed as issues) and daily results (per owner), built in `kade-agent/governance` | Built step by step (section 9) |
+| `docs/governance-plan.md` | Accepted: two daily reports over the working repositories, drift (rules and workflows, filed as issues) and daily results (per owner), built in `kade-agent/code-quality-assurance` | Built step by step (section 9) |
 | `docs/repo-rules-review.html` | 2026-10-11 audit: each repository's rules and workflows against the global rules, with advice and proposed global changes | Read as an Artifact page (the Mermaid diagrams render there); its actions become their own PRs |
 
 Each repository's `CLAUDE.md` keeps its own gates, paths and branch rules and names what it

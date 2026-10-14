@@ -12,7 +12,7 @@ const { readStamp, mergeSettings } = require("../hooks/global-sync.cjs");
 
 const ROOT = path.join(__dirname, "..");
 // Tracked but never deployed: the sparse checkout in ~/.claude leaves these out.
-const DEV_ONLY = ["setup/", "scripts/", "docs/", ".github/", "README.md", "deploy-exclude"];
+const DEV_ONLY = ["setup/", "scripts/", "docs/", ".github/", ".claude/", "README.md", "deploy-exclude"];
 
 function git(args, input) {
   return execFileSync("git", ["-C", ROOT, ...args], { encoding: "utf8", input, stdio: ["pipe", "pipe", "pipe"] });
@@ -98,4 +98,41 @@ test("settings.global.json registers global-sync and context-guard from $HOME/.c
   const once = mergeSettings({ hooks: { Stop: [{ hooks: [{ type: "command", command: "foreign" }] }] } }, fragment);
   assert.deepStrictEqual(mergeSettings(structuredClone(once), fragment), once, "merging twice must change nothing");
   assert.strictEqual(once.hooks.Stop.length, 1, "foreign hooks stay");
+});
+
+// The reports' repository was renamed kade-agent/code-quality-assurance on 2026-10-14.
+test("no tracked file names the reports' repository by its old name", () => {
+  const old = /kade-agent\\?\/governance\b/; // also inside a regular expression
+  const found = [];
+  for (const f of tracked) {
+    const full = path.join(ROOT, f);
+    if (!fs.statSync(full).isFile()) continue;
+    fs.readFileSync(full, "utf8").split("\n").forEach((line, i) => {
+      if (old.test(line)) found.push(`${f}:${i + 1}`);
+    });
+  }
+  assert.deepStrictEqual(found, []);
+});
+
+// This repository and the skills' moved to kade-agent on 2026-10-15 (agent-migration-plan.md,
+// step 2). The dated plans and the review snapshot keep the names they had when written.
+const HISTORY = new Set([
+  "docs/agent-migration-plan.md",
+  "docs/global-rules-plan.md",
+  "docs/governance-plan.md",
+  "docs/refactor-plan.md",
+  "docs/repo-rules-review.html",
+]);
+test("no tracked file outside the dated plans names this repository or the skills' by the old owner", () => {
+  const old = /enjay27\\?\/claude-(global|skills)\b/; // also inside a regular expression
+  const found = [];
+  for (const f of tracked) {
+    if (HISTORY.has(f)) continue;
+    const full = path.join(ROOT, f);
+    if (!fs.statSync(full).isFile()) continue;
+    fs.readFileSync(full, "utf8").split("\n").forEach((line, i) => {
+      if (old.test(line)) found.push(`${f}:${i + 1}`);
+    });
+  }
+  assert.deepStrictEqual(found, []);
 });

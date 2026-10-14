@@ -1,5 +1,5 @@
 #!/bin/bash
-# Checks out enjay27/claude-global into ~/.claude on a Mac or Linux machine, once
+# Checks out kade-agent/agent-config into ~/.claude on a Mac or Linux machine, once
 # (docs/global-rules-plan.md, section 7). Windows: setup/local-setup.ps1, from PowerShell.
 #
 # Stops before changing anything if ~/.claude is already a git repository, if settings.json has
@@ -10,7 +10,7 @@
 # Usage: bash local-setup.sh
 # For tests: CLAUDE_GLOBAL_HOME replaces the home folder, CLAUDE_GLOBAL_REMOTE the repository.
 set -u
-remote="${CLAUDE_GLOBAL_REMOTE:-https://github.com/enjay27/claude-global}"
+remote="${CLAUDE_GLOBAL_REMOTE:-https://github.com/kade-agent/agent-config}"
 c="${CLAUDE_GLOBAL_HOME:-$HOME}/.claude"
 mkdir -p "$c" && cd "$c" || exit 1
 

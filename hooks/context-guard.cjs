@@ -29,7 +29,7 @@
 //   CONTEXT_HANDOFF_TOKENS   default 400000     CONTEXT_HANDOFF_PCT   default 60 (cap)
 //
 // The hook never blocks a prompt: on any error it prints nothing and exits 0.
-// Source of truth: github.com/enjay27/claude-global (hooks/). Runs from ~/.claude/hooks for every repository (settings.global.json).
+// Source of truth: github.com/kade-agent/agent-config (hooks/). Runs from ~/.claude/hooks for every repository (settings.global.json).
 
 "use strict";
 

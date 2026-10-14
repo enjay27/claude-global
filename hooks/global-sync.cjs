@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// global-sync: keeps ~/.claude, a sparse checkout of github.com/enjay27/claude-global, on the latest
+// global-sync: keeps ~/.claude, a sparse checkout of github.com/kade-agent/agent-config, on the latest
 // release tag (docs/global-rules-plan.md, sections 5 and 6).
 //
 // Usage:

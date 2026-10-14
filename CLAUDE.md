@@ -23,7 +23,7 @@ For every repository of Kade's (`stella-rain`, `star-resonance`, `enjay27`, `kad
 - Run the gate for every part touched. A gate that could not run is never reported as passed:
   name it as `NOT VERIFIED: <gate>: <reason>` in the commit body or the PR.
 - `governance` issues are ordinary work. A control's exception goes in both the repository's
-  profile in `kade-agent/governance` and its Overrides section, never in only one.
+  profile in `kade-agent/code-quality-assurance` and its Overrides section, never in only one.
 
 ## Git and pull requests
 
