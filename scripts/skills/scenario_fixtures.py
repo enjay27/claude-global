@@ -196,6 +196,47 @@ def s6(d):
     with_origin(d, STATUS_67)
 
 
+STATUS_13 = (
+    "# Status\n\n*Generated: 2026-10-15 06:30 UTC*\n\n"
+    "## Now\n- #4 `cmd:status-now` Parser rejects empty lines\n\n"
+    "## Waiting on Kade (assigned)\nnone\n\n## Recently merged\n- #3 Parser reads tabs\n")
+
+
+def s13(d):
+    """A migrated repository: AGENTS.md with the @AGENTS.md shim; origin has an agent/* and a claude/* branch."""
+    origin = d + "-origin.git"
+    os.makedirs(origin, exist_ok=True)
+    git(origin, "init", "-q", "--bare", "-b", "main")
+    init(d)
+    w(d + "/AGENTS.md", "# Project\n\nFollow the `repo-workflow` skill.\n\n- Gate: `make test`\n"
+      "- Flow: sessions work on `claude/<task>` (Claude) or `agent/<task>` (other agents); Kade merges.\n"
+      "- Current state: `STATUS.md` on the `status` branch of `origin` (labelled issues through the Project).\n")
+    w(d + "/CLAUDE.md", "@AGENTS.md\n")
+    w(d + "/Makefile", "test:\n\techo ok\n")
+    w(d + "/parser.txt", "reads tabs\n")
+    commit_all(d, "Initial")
+    git(d, "remote", "add", "origin", origin)
+    git(d, "push", "-q", "origin", "main")
+    for branch, path, text, msg in (
+            ("agent/fix-parser", "/parser.txt", "reads tabs\naccepts empty lines (half done)\n",
+             "WIP: parser accepts empty lines; next: the test for a file of only blank lines"),
+            ("claude/readme-typo", "/README.md", "# Parser\n", "README names the project")):
+        git(d, "checkout", "-q", "-b", branch, "main")
+        w(d + path, text)
+        commit_all(d, msg)
+        git(d, "push", "-q", "origin", branch)
+        git(d, "checkout", "-q", "main")
+        git(d, "branch", "-q", "-D", branch)
+    git(d, "checkout", "-q", "--orphan", "status")
+    git(d, "rm", "-rfq", ".")
+    w(d + "/STATUS.md", STATUS_13)
+    git(d, "add", "STATUS.md")
+    git(d, "commit", "-q", "-m", "snapshot")
+    git(d, "push", "-q", "origin", "status")
+    git(d, "checkout", "-q", "main")
+    git(d, "branch", "-q", "-D", "status")
+
+
 def s7(d):
     with_origin(d, STATUS_67)
     git(d, "checkout", "-q", "-b", "claude/notarize")
@@ -291,8 +332,8 @@ def s12(d):
 
 BUILD = {"S1": s1, "S2": s2, "S3": s3, "S3b": s3b, "S4": s4, "S5": s5, "S5b": s5b,
          "S6": s6, "S7": s7, "S7b": s7b, "S8": s8, "S9": s9, "S10": s10, "S10b": s10,
-         "S10c": s10, "S10d": s10, "S10e": s10, "S11": s11, "S12": s12}
-IN_WORK = {"S6", "S7", "S7b"}
+         "S10c": s10, "S10d": s10, "S10e": s10, "S10f": s10, "S11": s11, "S12": s12, "S13": s13}
+IN_WORK = {"S6", "S7", "S7b", "S13"}
 
 
 def rmtree(path):

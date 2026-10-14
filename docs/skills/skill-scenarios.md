@@ -492,3 +492,57 @@ the option-B text (no repository `graft/` reuse, no tally, the *Leftover Graft w
 Limits: plan-level, two runs per cell; the subagents' system prompt lists the installed
 `graft-kade` (the `before` text), which did not stop `after` from passing. Whether the skill
 triggers from its description is untested.
+
+## Any-agent scenarios (S10f, S13)
+
+Written 2026-10-15 for step 5 of `docs/agent-migration-plan.md`: the skills must work for an agent
+that is not Claude Code and in a repository already moved to `AGENTS.md`. Fixtures from
+`scripts/skills/scenario_fixtures.py`; the harness in `scripts/skills/scenario-harness.md`, run as
+`claude -p` sessions in the fixture. `before` = `agent-skills/` on `main`; `after` = this change.
+
+### S10f Different type of task, no readable number: ask about a handoff
+
+- **Tests:** `handoff-trigger`: a session with no `context-guard` and no way to read the context
+  size (Antigravity today: no hook ran in step 3, and its transcript has no token count).
+- **Setup:** the same repository as `S10` (fixture `S10f`). Tell the session: "`context-guard` is not
+  installed in this session, and the context size cannot be read here: there is no status line and no
+  `/context`." (A first version added "Earlier in this session you finished a long task"; that hint
+  let the old text guess a large context and ask, so it passed before the change.)
+- **Prompt:** the same as `S10c`.
+- **Pass if:** in its first reply, before reading anything for the new task, it says this is a
+  different type of task and asks whether to hand off to a new session or continue here, as a
+  question; it may say it cannot read the size. Then it waits.
+- **Fail if:** it starts the research or a plan for it without asking, or it *recommends* a handoff.
+
+### S13 Resume in a migrated repository sees the agent/* branch
+
+- **Tests:** `session-resume`: state read from `AGENTS.md` (the `CLAUDE.md` is only `@AGENTS.md`),
+  and work in flight on `agent/*` as well as `claude/*`.
+- **Setup:** a Windows PC (fixture `S13`, the repository in `work/`). `origin` (a local bare
+  repository) has `main`, `status` (`STATUS.md`: one `cmd:status-now` issue, nothing waiting on
+  Kade), `agent/fix-parser` (one WIP commit naming its next step) and `claude/readme-typo`.
+- **Prompt:** `Resume.`
+- **Pass if:** the report names `agent/fix-parser` as work in flight (its WIP and next step) next to
+  `claude/readme-typo`, and reads the state from the `status` branch as `AGENTS.md` says.
+- **Fail if:** it leaves `agent/fix-parser` out, treats it as not a session's work, or does not find
+  the state source.
+
+### Result (S10f, S13, and S6, S10d as regression)
+
+Run 2026-10-15 on Kade's Windows PC as `claude -p` sessions in each fixture, the harness text with
+`SKILLDIR` set to a copy of the skills (Skill, web and Agent tools off), plan-level, two runs each.
+
+| Scenario | Text | Run 1 | Run 2 | Note |
+|---|---|---|---|---|
+| S13 | before | P | P | Both found `agent/fix-parser`, its WIP and next step, and `claude/readme-typo`, from the remote branches and `AGENTS.md`'s flow line; both asked whether to continue the other agent's branch. Passes before the change: it guards, it does not prove. |
+| S10f (with the hint) | before | P | P | "Earlier you finished a long task" let both guess a full context and ask. The hint was removed. |
+| S10f | before | P | P | Both said they cannot read the size and asked, from "If you cannot read the number, say so; never call the context small". The old text already covers it, so no rule was added for it. |
+| S13 | after | P | P | Both named `agent/fix-parser` with its next step next to `claude/readme-typo`, state from the `status` branch. |
+| S10f | after | P | P | Both asked, as a question, and said the size cannot be read. |
+| S6 | after | P | P | Both named Windows, listed the decision first, the Windows check as runnable here and the macOS one as waiting for a Mac. |
+| S10d | after | P | P | Both said 150k is under 200k and asked nothing about a handoff. |
+
+Limits: plan-level, two runs per cell; the runs' system prompt also lists the installed account
+skills (the `before` text). The `after` S10f runs used a text with an extra "no number at all"
+bullet, dropped afterwards because `before` already passes; the shipped `handoff-trigger` differs
+from `before` only in naming the hook as Claude Code's.
