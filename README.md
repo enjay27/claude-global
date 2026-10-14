@@ -1,8 +1,9 @@
-# claude-global
+# agent-config
 
 Kade's Claude configuration for every repository: the global rules, the hooks, and the plans
 that move each repository onto them. Public. The account skills live in
-[`enjay27/claude-skills`](https://github.com/enjay27/claude-skills).
+[`kade-agent/claude-skills`](https://github.com/kade-agent/claude-skills). This repository was
+`claude-global` under Kade's own account until 2026-10-15 (`docs/agent-migration-plan.md`, step 2).
 
 | Path | What | How it is used |
 |---|---|---|
