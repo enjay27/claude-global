@@ -99,3 +99,17 @@ test("settings.global.json registers global-sync and context-guard from $HOME/.c
   assert.deepStrictEqual(mergeSettings(structuredClone(once), fragment), once, "merging twice must change nothing");
   assert.strictEqual(once.hooks.Stop.length, 1, "foreign hooks stay");
 });
+
+// The reports' repository was renamed kade-agent/code-quality-assurance on 2026-10-14.
+test("no tracked file names the reports' repository by its old name", () => {
+  const old = /kade-agent\\?\/governance\b/; // also inside a regular expression
+  const found = [];
+  for (const f of tracked) {
+    const full = path.join(ROOT, f);
+    if (!fs.statSync(full).isFile()) continue;
+    fs.readFileSync(full, "utf8").split("\n").forEach((line, i) => {
+      if (old.test(line)) found.push(`${f}:${i + 1}`);
+    });
+  }
+  assert.deepStrictEqual(found, []);
+});

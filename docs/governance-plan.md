@@ -20,10 +20,11 @@
      writes nothing anywhere but its pages.
   5. Reports are **private Artifact pages**, each republished at one URL.
   6. The daily run starts at **09:10 KST**.
-  7. Governance files live in **their own private repository, `kade-agent/governance`**
-     (organization `kade-agent`, created 2026-10-11), not here: `claude-global` is public, and
-     the profiles name private repositories, their merge models and their exceptions. No
-     governance file per working repository.
+  7. Governance files live in **their own private repository,
+     `kade-agent/code-quality-assurance`** (organization `kade-agent`, created 2026-10-11), not
+     here: `claude-global` is public, and the profiles name private repositories, their merge
+     models and their exceptions. No governance file per working repository. Kade renamed it
+     from `governance` on 2026-10-14: it will also hold a weekly code quality report.
   8. The drift report's **Claude judgement runs every day**, on what changed since the last
      run; the first run and each global-rules release judge everything (section 6).
   9. The daily result report adds two lines: **auto-merge stuck** and **security alerts**
@@ -68,7 +69,8 @@ alone. The drift run starts later so that the daily page of the same morning can
 
 `claude-global` and `claude-skills` are the rules' own source, not working repositories: their
 own tests cover them, and neither report reads them except to know the current global release.
-`kade-agent/governance` is the reports' own home and is covered by its own tests, not checked.
+`kade-agent/code-quality-assurance` is the reports' own home and is covered by its own tests,
+not checked.
 Adding a repository is one profile file (section 5).
 
 ## 4. Daily result report
@@ -106,7 +108,7 @@ shared only by Kade from the page's Share menu.
 ## 5. Drift report: files
 
 ```
-kade-agent/governance/       private
+kade-agent/code-quality-assurance/ private
   CLAUDE.md                  the repository's rules, gates and merge model
   .gitattributes             * text=auto eol=lf
   .github/workflows/test.yml node --test on every push and PR
@@ -128,7 +130,7 @@ kade-agent/governance/       private
   the working repositories', can come later in its own PR.
 - **The global rules it checks against** are named by version: `controls.json` records the
   `claude-global` release its controls were written for, and a rule change there that affects
-  a control is followed by a PR in `kade-agent/governance`.
+  a control is followed by a PR in `kade-agent/code-quality-assurance`.
 - **An owner profile** holds what its repositories share: the reusable-workflow repository, the
   Project and its snapshot branch, the merge model, and where development issues of repositories
   without their own tracker go.
@@ -201,21 +203,21 @@ Built from the audit's findings; each becomes a test fixture before its check is
 | TR-02 | A ported file's source commit is recorded, and its drift from the source is listed | – | advise | script |
 | TR-03 | A public repository's issues, logs and docs carry no private planning or personal data | G18 | broken | claude |
 
-Adding, removing or changing a control is a PR in `kade-agent/governance`.
+Adding, removing or changing a control is a PR in `kade-agent/code-quality-assurance`.
 
 ## 8. The Routines
 
 | | Daily results | Drift |
 |---|---|---|
 | Schedule | `CRON_TZ=Asia/Seoul 10 9 * * *` | `CRON_TZ=Asia/Seoul 40 9 * * *` |
-| Prompt | "Follow `daily.md` at `kade-agent/governance` `main`." | "Follow `drift.md` at `kade-agent/governance` `main`." |
+| Prompt | "Follow `daily.md` at `kade-agent/code-quality-assurance` `main`." | "Follow `drift.md` at `kade-agent/code-quality-assurance` `main`." |
 | Writes | its three pages | issues (section 6) and its page |
 | First run | capped by nothing; it writes no issue | at most 10 new issues |
 
 - Each fires a **fresh session** in the cloud environment that holds the working repositories,
   with the GitHub connector granted and nothing else, and a push notification on completion.
 - The one-line prompt means **what a run does changes only through a reviewed PR in
-  `kade-agent/governance`**, never by editing the Routine.
+  `kade-agent/code-quality-assurance`**, never by editing the Routine.
 - **Every run, first:** fetch each repository and read it at `origin/main` (the audit's first
   wrong turn); if a repository or the API cannot be read, say so on the page, and never report
   an unchecked item as passing.
@@ -231,7 +233,7 @@ needs no catalog and is useful at once.
 | Step | What | Gate | This session can run it |
 |---|---|---|---|
 | 0 | This plan, accepted by Kade in a commit of its own | – | – |
-| 1 | In `kade-agent/governance`: `CLAUDE.md`, `.gitattributes`, `test.yml`; `orgs/*.json`, `repos/*.json` (working repositories only), `daily.md`; a run by hand whose three pages Kade reads | `node --test` (profiles parse, every working repository has one); the pages | yes |
+| 1 | In `kade-agent/code-quality-assurance`: `CLAUDE.md`, `.gitattributes`, `test.yml`; `orgs/*.json`, `repos/*.json` (working repositories only), `daily.md`; a run by hand whose three pages Kade reads | `node --test` (profiles parse, every working repository has one); the pages | yes |
 | 2 | The daily Routine, then its first scheduled run read by Kade | the first scheduled pages | yes, with Kade |
 | 3 | `controls.json`, the checker for the `script` controls, fixtures from the audit's findings, tests first | `node --test` | yes |
 | 4 | `drift.md`; the `api` and `claude` steps; `--dry-run` prints the issue plan without writing; reviewed with Kade against the audit | `node --test`; a dry run | yes |
@@ -242,8 +244,8 @@ needs no catalog and is useful at once.
 
 - Global `CLAUDE.md`, one line under *How to work*: "Governance issues (`governance` label) are
   ordinary work; an exception to a control goes in the repository's profile in
-  `kade-agent/governance` and in its Overrides section, never in only one." The file stays
-  within its 60-line cap.
+  `kade-agent/code-quality-assurance` and in its Overrides section, never in only one." The file
+  stays within its 60-line cap.
 - Global `CLAUDE.md`, the line naming whose repositories it is for: `kade-agent` joins the owners whose repositories the rules
   cover.
 - `repo-workflow` (in `claude-skills`), one line in section 1: read another repository at its
