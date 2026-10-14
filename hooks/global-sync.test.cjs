@@ -11,6 +11,7 @@ const gs = require("./global-sync.cjs");
 
 const SCRIPT = path.join(__dirname, "global-sync.cjs");
 const SYNC = 'node "$HOME/.claude/hooks/global-sync.cjs"';
+const SHIM = "@AGENTS.md\n";
 const EXCLUDE = "*\n!.gitignore\n!CLAUDE.md\n!hooks/\n!hooks/**\n!settings.global.json\n";
 const FRAGMENT = {
   hooks: { SessionStart: [{ matcher: "startup", hooks: [{ type: "command", command: SYNC, timeout: 30 }] }] },
@@ -76,7 +77,10 @@ function git(cwd, ...args) {
 }
 
 // An origin with releases (and noise tags), and a home whose ~/.claude is checked out at `at`.
-function world({ releases = ["v2026.01.01", "v2026.01.02"], at = "v2026.01.01" } = {}) {
+// A release in `agents` is laid out as after the AGENTS.md move: the rules and their stamp in
+// AGENTS.md, CLAUDE.md the one line @AGENTS.md. ~/.claude's sparse checkout is the list every
+// machine set up before that move has, without /AGENTS.md.
+function world({ releases = ["v2026.01.01", "v2026.01.02"], at = "v2026.01.01", agents = [] } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gsync-"));
   const work = path.join(root, "work");
   const origin = path.join(root, "origin.git");
@@ -90,7 +94,13 @@ function world({ releases = ["v2026.01.01", "v2026.01.02"], at = "v2026.01.01" }
   fs.mkdirSync(path.join(work, "docs"));
   fs.writeFileSync(path.join(work, "docs", "plan.md"), "dev only\n");
   for (const tag of releases) {
-    fs.writeFileSync(path.join(work, "CLAUDE.md"), `Global rules: ${tag}\n\nRule of ${tag}.\n`);
+    const rules = `Global rules: ${tag}\n\nRule of ${tag}.\n`;
+    if (agents.includes(tag)) {
+      fs.writeFileSync(path.join(work, "AGENTS.md"), rules);
+      fs.writeFileSync(path.join(work, "CLAUDE.md"), SHIM);
+    } else {
+      fs.writeFileSync(path.join(work, "CLAUDE.md"), rules);
+    }
     git(work, "add", "-A");
     git(work, "commit", "-q", "-m", tag);
     git(work, "tag", tag);
@@ -119,7 +129,8 @@ function run(w, args = []) {
   });
 }
 
-const stamp = (w) => gs.readStamp(fs.readFileSync(path.join(w.c, "CLAUDE.md"), "utf8"));
+const stamp = (w, file = "CLAUDE.md") => gs.readStamp(fs.readFileSync(path.join(w.c, file), "utf8"));
+const sparse = (w) => git(w.c, "sparse-checkout", "list").split("\n").filter(Boolean);
 
 test("up to date: prints nothing and changes nothing", () => {
   const w = world({ at: "v2026.01.02" });
@@ -180,4 +191,52 @@ test("--install leaves an unreadable settings.json untouched", () => {
   const out = run(w, ["--install"]);
   assert.strictEqual(fs.readFileSync(path.join(w.c, "settings.json"), "utf8"), "{ not json");
   assert.match(out, /not valid JSON/);
+});
+
+// ---- the AGENTS.md move (docs/agent-migration-plan.md, step 7) ----------------------------
+
+test("a machine on a CLAUDE.md release moves to an AGENTS.md release in one session", () => {
+  const w = world({ agents: ["v2026.01.02"] });
+  const out = run(w);
+  assert.strictEqual(stamp(w, "AGENTS.md"), "v2026.01.02");
+  assert.strictEqual(fs.readFileSync(path.join(w.c, "CLAUDE.md"), "utf8").replace(/\r\n/g, "\n"), SHIM);
+  assert.match(out, /Global rules updated v2026\.01\.01 -> v2026\.01\.02/);
+  assert.match(out, /Rule of v2026\.01\.02\./, "prints the rules, not the one-line shim");
+  assert.strictEqual(git(w.c, "status", "--short"), "");
+  assert.strictEqual(run(w), "", "up to date from the next session");
+});
+
+test("a machine the previous hook moved to an AGENTS.md release without AGENTS.md recovers next session", () => {
+  // The hook before this change checks the release out with the old sparse list: CLAUDE.md is the
+  // shim and AGENTS.md is missing, so the session loads no rules. The next session must repair it.
+  const w = world({ agents: ["v2026.01.02"], at: "v2026.01.02" });
+  assert.ok(!fs.existsSync(path.join(w.c, "AGENTS.md")), "the state the previous hook leaves");
+  const out = run(w);
+  assert.strictEqual(stamp(w, "AGENTS.md"), "v2026.01.02");
+  assert.match(out, /Global rules updated \(none\) -> v2026\.01\.02/);
+  assert.match(out, /Rule of v2026\.01\.02\./);
+  assert.strictEqual(run(w), "");
+});
+
+test("adds /AGENTS.md to the sparse checkout once, also when already up to date", () => {
+  const w = world({ at: "v2026.01.02" });
+  assert.strictEqual(run(w), "");
+  assert.deepStrictEqual(sparse(w).filter((p) => p === "/AGENTS.md"), ["/AGENTS.md"]);
+  run(w);
+  assert.deepStrictEqual(sparse(w).filter((p) => p === "/AGENTS.md"), ["/AGENTS.md"]);
+  assert.ok(sparse(w).includes("/CLAUDE.md"), "the other paths stay");
+});
+
+test("a checkout that is not sparse is left that way", () => {
+  const w = world({ at: "v2026.01.02" });
+  git(w.c, "sparse-checkout", "disable");
+  assert.strictEqual(run(w), "");
+  assert.notStrictEqual(git(w.c, "config", "--default", "false", "--get", "core.sparseCheckout").trim(), "true");
+});
+
+test("the stamp in AGENTS.md wins over CLAUDE.md's", () => {
+  const w = world(); // at v2026.01.01, origin has v2026.01.02
+  fs.writeFileSync(path.join(w.c, "AGENTS.md"), "Global rules: v2026.02.01\n"); // ahead of origin
+  assert.strictEqual(run(w), "", "CLAUDE.md's older stamp alone would move it to v2026.01.02");
+  assert.strictEqual(stamp(w), "v2026.01.01");
 });

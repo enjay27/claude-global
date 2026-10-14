@@ -55,6 +55,20 @@ test("the setup script checks out exactly the allowed top-level paths", () => {
   }
 });
 
+// The AGENTS.md move (docs/agent-migration-plan.md, step 7): a machine set up from any script must
+// check AGENTS.md out, and the allowlist must let it be tracked in ~/.claude.
+test("the three setup scripts check out the same paths, AGENTS.md among them", () => {
+  const lists = ["cloud-setup.sh", "local-setup.sh", "local-setup.ps1"].map((name) => {
+    const script = fs.readFileSync(path.join(ROOT, "setup", name), "utf8");
+    return [name, /sparse-checkout set --no-cone (.+?)\s*(\\|$)/m.exec(script)[1].trim().split(/\s+/)];
+  });
+  for (const [name, list] of lists) {
+    assert.ok(list.includes("/AGENTS.md"), `${name}: /AGENTS.md in the sparse-checkout list`);
+    assert.deepStrictEqual(list, lists[0][1], `${name} checks out what ${lists[0][0]} does`);
+  }
+  assert.deepStrictEqual(excluded(["AGENTS.md", "CLAUDE.md"]), [], "deploy-exclude allows both rules files");
+});
+
 test("CLAUDE.md starts with a release stamp and stays within 60 lines", () => {
   const text = fs.readFileSync(path.join(ROOT, "CLAUDE.md"), "utf8");
   assert.ok(readStamp(text), 'line 1 must be "Global rules: v<version>"');

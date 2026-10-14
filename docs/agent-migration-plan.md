@@ -113,11 +113,17 @@ Each step is one PR, merged before the next.
    migrated)", `claude/*` or `agent/*`, and what to do without `context-guard`. Kade saves them
    to the account again.
 6. **`code-quality-assurance` accepts both** (section 4).
-7. **The file move only:** `git mv CLAUDE.md AGENTS.md`, the shim, the release stamp,
-   `release.yml`, `test.yml`, `global-sync` (reads `AGENTS.md`, falls back to `CLAUDE.md`),
-   `deploy-exclude`, the sparse-checkout lists, `repo.test.cjs`, the README. A test that a machine
-   on the last `CLAUDE.md` release updates cleanly: the old `global-sync` finds no stamp on line 1
-   of the new `CLAUDE.md`.
+7. **The file move, in two releases** (Kade, 2026-10-15). Every machine's sparse checkout lacks
+   `/AGENTS.md`, and the old `global-sync` does the checkout of the move's release, so one release
+   would leave `CLAUDE.md` the shim and no `AGENTS.md`.
+   - **7a, `global-sync` learns `AGENTS.md`:** reads the stamp from `AGENTS.md`, falling back to
+     `CLAUDE.md`; adds `/AGENTS.md` to the sparse checkout on every run; prints the stamped file;
+     `deploy-exclude` and the three setup scripts' sparse lists; an existing `~/.claude/AGENTS.md`
+     stops the local setup. Released before 7b, so machines run it when 7b arrives.
+   - **7b, the move only:** `git mv CLAUDE.md AGENTS.md`, the shim, the release stamp,
+     `release.yml`, `test.yml`, `repo.test.cjs`, the README. A machine that skipped 7a takes 7b
+     with the old hook and no `AGENTS.md`; its next session's hook finds no stamp, checks
+     `AGENTS.md` out and prints the rules (tested in 7a).
 8. **The rules' wording:** `AGENTS.md` throughout, the branch and author rules of decision 2,
    Claude-only rules marked. Release; raise `global_rules` in `code-quality-assurance`.
 9. **`agents.json` with Antigravity:** the include line, the skills copied to both folders, the

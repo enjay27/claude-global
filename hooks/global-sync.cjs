@@ -4,14 +4,17 @@
 //
 // Usage:
 //   node global-sync.cjs             SessionStart hook (matcher "startup"). Moves to a newer release
-//                                    if there is one and prints the new CLAUDE.md, because the old
-//                                    one was already loaded; prints nothing when up to date.
+//                                    if there is one and prints the new rules, because the old
+//                                    ones were already loaded; prints nothing when up to date.
 //   node global-sync.cjs --install   Setup (cloud setup script, first local install): same update,
 //                                    then rewrites .git/info/exclude and the hook entries in
 //                                    ~/.claude/settings.json even when nothing changed.
 //
-// A release is a tag vYYYY.MM.DD or vYYYY.MM.DD.N; the version in use is line 1 of CLAUDE.md,
+// A release is a tag vYYYY.MM.DD or vYYYY.MM.DD.N; the version in use is line 1 of the rules,
 // "Global rules: <tag>" (scripts/release.cjs keeps them equal). It never moves backwards.
+// The rules are AGENTS.md from the AGENTS.md move on (docs/agent-migration-plan.md, step 7), with
+// CLAUDE.md the one line @AGENTS.md; CLAUDE.md before it. Every run first adds /AGENTS.md to a
+// sparse checkout set up before the move, so the move's release checks it out.
 // It never fails a session: every path exits 0, with at most one line when something went wrong.
 //
 // Environment: CLAUDE_GLOBAL_DIR overrides the checkout (default: the folder above this file).
@@ -76,17 +79,47 @@ function git(...args) {
   });
 }
 
+// The rules files, in the order their stamp is read.
+const RULES = ["AGENTS.md", "CLAUDE.md"];
+
+// The rules file that holds the stamp, or null.
+function stampedFile() {
+  for (const f of RULES) {
+    try {
+      if (readStamp(fs.readFileSync(path.join(dir(), f), "utf8"))) return f;
+    } catch {
+      // not there: try the next
+    }
+  }
+  return null;
+}
+
 function currentVersion() {
+  const f = stampedFile();
+  return f && readStamp(fs.readFileSync(path.join(dir(), f), "utf8"));
+}
+
+// A sparse checkout set up before the AGENTS.md move lists /CLAUDE.md but not /AGENTS.md; add it,
+// once. A checkout that is not sparse is left alone.
+function ensureSparse() {
+  let sparse;
   try {
-    return readStamp(fs.readFileSync(path.join(dir(), "CLAUDE.md"), "utf8"));
+    sparse = git("config", "--get", "core.sparseCheckout").trim() === "true";
   } catch {
-    return null;
+    sparse = false; // unset
+  }
+  if (!sparse) return;
+  if (!git("sparse-checkout", "list").split("\n").includes("/AGENTS.md")) {
+    git("sparse-checkout", "add", "/AGENTS.md");
   }
 }
 
 // Returns { from, to } when it moved to a newer release, null when already up to date.
 function update() {
+  // Read before the repair: adding /AGENTS.md checks it out at once, and a machine that had no
+  // rules loaded must still count as moved, so the hook prints them.
   const from = currentVersion();
+  ensureSparse();
   const tags = git("ls-remote", "--tags", "--refs", "origin", "v*")
     .split("\n")
     .map((line) => line.split("refs/tags/")[1])
@@ -131,7 +164,7 @@ function hook() {
     return;
   }
   if (!moved) return;
-  const text = fs.readFileSync(path.join(dir(), "CLAUDE.md"), "utf8");
+  const text = fs.readFileSync(path.join(dir(), stampedFile() || "CLAUDE.md"), "utf8");
   console.log(
     `Global rules updated ${moved.from || "(none)"} -> ${moved.to} at session start. The text below ` +
       `replaces the ${moved.from || "earlier"} global rules loaded earlier in this session; changed ` +

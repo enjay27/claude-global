@@ -61,15 +61,16 @@ git init -q
 if ($LASTEXITCODE) { Undo 'git init failed' }
 git remote add origin $remote
 if ($LASTEXITCODE) { Undo 'git remote add failed' }
-git sparse-checkout set --no-cone /CLAUDE.md /rules/ /hooks/ /settings.global.json /.gitignore /.gitattributes
+git sparse-checkout set --no-cone /AGENTS.md /CLAUDE.md /rules/ /hooks/ /settings.global.json /.gitignore /.gitattributes
 if ($LASTEXITCODE) { Undo 'git sparse-checkout failed' }
 git fetch -q --depth 1 origin tag $tag
 if ($LASTEXITCODE) { Undo "could not fetch $tag" }
 
 # A sparse checkout overwrites untracked files at its paths without failing (git 2.43), so look
-# for files of yours in the way before checking out.
-$inWay = git ls-tree -r --name-only $tag -- CLAUDE.md rules hooks settings.global.json .gitignore .gitattributes |
-  Where-Object { Test-Path -LiteralPath $_ }
+# for files of yours in the way before checking out. AGENTS.md counts whatever this tag holds:
+# global-sync --install then moves on to the latest release, which has it.
+$inWay = @(git ls-tree -r --name-only $tag -- AGENTS.md CLAUDE.md rules hooks settings.global.json .gitignore .gitattributes) + 'AGENTS.md' |
+  Sort-Object -Unique | Where-Object { Test-Path -LiteralPath $_ }
 if ($inWay) {
   $inWay | ForEach-Object { [Console]::Error.WriteLine("  $_") }
   Undo 'these files of yours are in the way of the checkout'
@@ -79,7 +80,8 @@ if ($LASTEXITCODE) { Undo 'the checkout failed' }
 
 node hooks/global-sync.cjs --install
 if ($LASTEXITCODE) { Fail 'global-sync --install failed' }
-Write-Output "local-setup: $(Get-Content CLAUDE.md -TotalCount 1)"
+$rules = if (Test-Path AGENTS.md) { 'AGENTS.md' } else { 'CLAUDE.md' }  # the rules' file since the AGENTS.md move
+Write-Output "local-setup: $(Get-Content $rules -TotalCount 1)"
 $status = git status --short
 if ($status) { $status; Fail '~/.claude has untracked or changed files (above)' }
 if ($script:moved) { Write-Output 'local-setup: your previous CLAUDE.md is now ~/.claude/rules/local.md' }
