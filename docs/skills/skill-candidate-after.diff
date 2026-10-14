@@ -1,0 +1,87 @@
+diff -ru --strip-trailing-cr before/kade-workflow/SKILL.md after/kade-workflow/SKILL.md
+--- before/kade-workflow/SKILL.md	2026-10-09 01:33:06.147457400 +0900
++++ after/kade-workflow/SKILL.md	2026-10-09 01:33:22.141715200 +0900
+@@ -16,6 +16,14 @@
+ - **A new module, crate or dependency is decided with Kade first**: bring the options, their
+   trade-offs for long-term release maintainability (API and format stability, upgrade cost,
+   tooling lock-in) and your recommendation, then build after he picks.
++- **Decide before you wire.** Wiring, a new repository or a new integration comes after a written
++  plan or ADR that Kade has accepted. If the plan says `proposed`, ask him to accept it first
++  (or accept with changes); add no dormant caller, disabled workflow or stub for an undecided design.
++- **A decision brief** is: 2 to 3 options in a table, the long-term maintenance cost of each,
++  your recommendation, open questions. No code, file or dependency until he picks.
++- **Outward actions** (a public repository, an issue or PR made for a test, a transfer, a secret,
++  a message to others): before doing one, say what it creates, who can see it and how it is
++  removed afterwards (and what permission that needs); then ask. A bare "ok?" is not enough.
+ - **Wait for Kade's explicit approval.** Approval covers the steps in the plan, nothing more.
+   A new step that widens the scope goes back to him.
+ - "Follow your recommendation" from Kade means: do what you recommended.
+@@ -23,7 +31,9 @@
+ ## 2. Test first
+ 
+ New behaviour and bug fixes start with a failing test that pins the wanted behaviour; run it
+-and see it fail for the right reason, then write the code. If a change cannot be unit-tested
++and see it fail for the right reason, then write the code. On the first failure of a new test, decide whether the test or the code is wrong before touching
++either: work the expected value by hand, say it, and fix the side that is wrong (a wrong
++expectation is fixed in the test). If a change cannot be unit-tested
+ (platform glue, UI, a cluster), say so in the commit body.
+ 
+ ## 3. Execute
+@@ -35,6 +45,9 @@
+ ## 4. Verify honestly
+ 
+ - Run the gate for **every part touched**, as the repository's `CLAUDE.md` defines it.
++- **A failing gate is not yet your change's fault:** run it on the unchanged checkout first
++  (stash or the previous commit). A missing tool or target is installed if the host is allowed,
++  otherwise `NOT VERIFIED`. Before reporting a hang, check your own time limit.
+ - **Never report a gate as passed when it could not run.** Name it in the last commit body:
+   `NOT VERIFIED: <gate>: <reason>` (for example, no Windows toolchain, no cluster reach).
+ - A blocked network host is **asked for**, never worked around: name the host and what needs it.
+@@ -52,7 +65,8 @@
+ - **Subject: the finding or the point of the change**, not the files touched.
+   Good: `A shared log file lost 1780 of 4000 lines under rotation; one file per pod lost none`.
+   Bad: `update values.yaml`, `fix bug`.
+-- **Body:** what changed, with numbers; why, and which earlier belief it corrects; what is
++- **Body:** what changed, with numbers taken from `git diff --stat` for that commit (run it before
++  writing the body, never from memory); why, and which earlier belief it corrects; what is
+   verified and what is still open.
+ - **PR description:** *What changed and why*, *Verified*, *NOT VERIFIED*, *Wrong turns*
+   (approaches tried and abandoned). The PR is the session record; there are no separate
+diff -ru --strip-trailing-cr before/session-handoff/SKILL.md after/session-handoff/SKILL.md
+--- before/session-handoff/SKILL.md	2026-10-09 01:33:06.284174200 +0900
++++ after/session-handoff/SKILL.md	2026-10-09 01:33:22.142214900 +0900
+@@ -39,7 +39,7 @@
+ Resume <repository> with the session-resume skill.
+ Continue: <task>, branch <branch>, PR <#n or none>.
+ Done so far: <one line>.
+-Next step: <one line>.
++Next step: <one line> (needs <Windows|macOS|NAS|any machine>, from the task's `Needs` label).
+ Watch out: <one line, or "nothing">.
+ ```
+ 
+diff -ru --strip-trailing-cr before/session-resume/SKILL.md after/session-resume/SKILL.md
+--- before/session-resume/SKILL.md	2026-10-09 01:33:06.215203400 +0900
++++ after/session-resume/SKILL.md	2026-10-09 01:33:22.142214900 +0900
+@@ -32,12 +32,18 @@
+ - `git status` and the current branch. Uncommitted changes are Kade's unless the starter
+   prompt says they are a parked task.
+ 
+-## 3. Report (at most about 15 lines)
++## 3. Know the machine
++
++Find out which machine this session runs on (Windows, macOS, or the NAS over SSH). Checks labelled
++`cmd:verify-needs-<machine>` for another machine are not for this session: list them as waiting.
++
++## 4. Report (at most about 15 lines)
+ 
+ - **Where things stand**: one or two lines.
+ - **Now**: the items in progress.
+-- **Waiting on Kade / Needs <machine> / NOT VERIFIED**: decisions assigned to him, checks that
+-  wait for a machine or device (say which), and anything unproven.
+-- **Proposed next task**: one task, with the gate it needs and whether this session can run it.
++- **Machine**: name it in one line.
++- **Waiting on Kade** first (decisions assigned to him), then **Needs <this machine>** (this session can run
++  them), then **Needs <other machine>** (say which machine they wait for), then anything unproven.
++- **Proposed next task**: one task, with the gate it needs and whether this session can run it; never a check that needs another machine.
+ 
+ Then ask him to confirm or redirect.

@@ -12,7 +12,7 @@ const { readStamp, mergeSettings } = require("../hooks/global-sync.cjs");
 
 const ROOT = path.join(__dirname, "..");
 // Tracked but never deployed: the sparse checkout in ~/.claude leaves these out.
-const DEV_ONLY = ["setup/", "scripts/", "docs/", ".github/", ".claude/", "README.md", "deploy-exclude"];
+const DEV_ONLY = ["setup/", "scripts/", "docs/", ".github/", ".claude/", "agent-skills/", "README.md", "deploy-exclude"];
 
 function git(args, input) {
   return execFileSync("git", ["-C", ROOT, ...args], { encoding: "utf8", input, stdio: ["pipe", "pipe", "pipe"] });
@@ -135,4 +135,20 @@ test("no tracked file outside the dated plans names this repository or the skill
     });
   }
   assert.deepStrictEqual(found, []);
+});
+
+// Step 4: the skills live in agent-skills/<name>/SKILL.md. Claude Code and Antigravity both need
+// front matter with a description; Claude's name must match the folder.
+test("every skill in agent-skills/ has front matter naming its folder and a description", () => {
+  const dir = path.join(ROOT, "agent-skills");
+  const names = fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
+  assert.ok(names.length > 0, "agent-skills/ holds no skill");
+  for (const name of names) {
+    const text = fs.readFileSync(path.join(dir, name, "SKILL.md"), "utf8");
+    const front = /^---\n([^]*?)\n---\n/.exec(text);
+    assert.ok(front, `${name}: SKILL.md starts with front matter between --- lines`);
+    // YAML values may be quoted (code-graph's are).
+    assert.match(front[1], new RegExp(`^name: ("?)${name}\\1$`, "m"), `${name}: name must be the folder's`);
+    assert.match(front[1], /^description: "?[^\s"]/m, `${name}: description must not be empty`);
+  }
 });

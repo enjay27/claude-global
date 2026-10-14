@@ -1,9 +1,9 @@
 # agent-config
 
-Kade's Claude configuration for every repository: the global rules, the hooks, and the plans
-that move each repository onto them. Public. The account skills live in
-[`kade-agent/claude-skills`](https://github.com/kade-agent/claude-skills). This repository was
-`claude-global` under Kade's own account until 2026-10-15 (`docs/agent-migration-plan.md`, step 2).
+Kade's Claude configuration for every repository: the global rules, the hooks, the account
+skills, and the plans that move each repository onto them. Public. This repository was
+`claude-global` under Kade's own account until 2026-10-15 (`docs/agent-migration-plan.md`, step 2);
+the skills moved in from `kade-agent/claude-skills` with their history (step 4).
 
 | Path | What | How it is used |
 |---|---|---|
@@ -17,6 +17,12 @@ that move each repository onto them. Public. The account skills live in
 | `.github/workflows/release.yml` | Release: on `rc`, tags `vYYYY.MM.DD` (`.2` later the same day) on a commit that stamps line 1 of `CLAUDE.md`, with a GitHub release | Started by Kade (Actions → Release → Run on `rc`) after a PR from `main` into `rc` |
 | `.github/workflows/project-sync.yml` | Adds issues to the Project "Kade Agent" and applies their `cmd:` labels, through the bridge in `kade-agent/.github` | Runs on issue events |
 | `.claude/CLAUDE.md` | This repository's own notes: where its state is, its gates | Read by sessions opened here; never deployed |
+| `agent-skills/repo-workflow/` | The procedures behind the global rules for any of Kade's repositories: plan, gates, commit and PR style, state | Saved as a claude.ai account skill |
+| `agent-skills/handoff-trigger/` | When to ask about or recommend a handoff and a new session, from the context size and the next task | Account skill |
+| `agent-skills/code-graph/` | Orient in a repository with Graft's code graph (callers, blast radius) instead of exploring file by file | Account skill |
+| `agent-skills/session-resume/`, `session-handoff/` | Start a session from the recorded state; close one with a starter prompt | Account skills |
+| `scripts/skills/` | Scenario harness and fixtures for testing the skills | Run by the session changing a skill |
+| `docs/skills/` | The skills' scenarios, their results, and the improvement plan | Read by the session changing a skill |
 | `scripts/release.cjs` | `next`, `stamp <tag>`, `latest` | Called by the Release workflow |
 | `docs/global-rules-plan.md` | One global rule set checked out as `~/.claude` on every machine and in the cloud, plus rules per repository | Closed 2026-10-09; every step done |
 | `docs/refactor-plan.md` | Moving `CLAUDE.md`, `MEMORY.md`, skills and rules to this setup, per repository | Read by the session doing the work |
@@ -25,6 +31,17 @@ that move each repository onto them. Public. The account skills live in
 
 Each repository's `CLAUDE.md` keeps its own gates, paths and branch rules and names what it
 overrides of the global rules; nothing here holds repository-specific facts.
+
+## Changing a skill
+
+Edit `agent-skills/<name>/SKILL.md` here, merge, then ask Claude to propose the updated skill and
+save it from the card. The file here is the source; the account copy follows it. Account skills
+apply in Claude Code (terminal and cloud) and Cowork sessions. `agent-skills/` is never deployed
+to `~/.claude`, where Claude would load the skills a second time.
+
+`repo-workflow` and `code-graph` were `kade-workflow` and `graft-kade` until 2026-10-09. The
+dated records in `docs/skills/` were written in `claude-skills` and keep its paths: there,
+`skills/` is `agent-skills/` here, `scripts/` is `scripts/skills/`, `docs/` is `docs/skills/`.
 
 ## Tests
 
