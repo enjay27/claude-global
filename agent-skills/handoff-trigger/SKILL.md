@@ -5,8 +5,9 @@ description: Decide when to ask about or recommend a handoff and a new session, 
 
 # Handoff trigger
 
-This is about the session, not the task. The `context-guard` hook (in `kade-agent/agent-config`) warns
-by size; this skill says what to do when it does, and what to do in a session without the hook.
+This is about the session, not the task. The `context-guard` hook (in `kade-agent/agent-config`,
+Claude Code only) warns by size; this skill says what to do when it does, and what to do in a
+session without the hook.
 
 Quality drops gradually as the context fills ("context rot"), well before the window is full, and
 auto-compaction replaces history with a summary. **Task boundaries matter more than the number.**

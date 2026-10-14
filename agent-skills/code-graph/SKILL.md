@@ -118,7 +118,7 @@ and never fold it into the task at hand.
   hook settings, unless Kade asks. `init` writes into `.claude/`, `.mcp.json`,
   `~/.claude/` and, for some agents, `~/.codex/`.
 - Never commit `graft/`, `.graft/` or Graft's `.ignore`. Graft does not belong in
-  `CLAUDE.md` either; this skill carries everything.
+  `AGENTS.md` or `CLAUDE.md` either; this skill carries everything.
 
 ## Pinning or updating
 

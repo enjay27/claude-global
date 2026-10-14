@@ -10,16 +10,18 @@ Do not edit anything until he confirms (repo-workflow, plan first).
 
 ## 1. Read the state
 
-The repository's `CLAUDE.md` says which source it uses (its *Current state* line):
+The repository's `AGENTS.md` (or `CLAUDE.md` where not yet migrated) says which source it uses
+(its *Current state* line):
 
 1. **Org Project repositories** (Stella Rain: the `status` branch of `app`; Resonance: the `status` branch
-   of `star-resonance/resonance-stream`): the snapshot.
+   of `star-resonance/resonance-stream`; Kade Agent: the `status` branch of
+   `kade-agent/code-quality-assurance`): the snapshot.
    ```bash
    git fetch origin status && git show origin/status:STATUS.md
    ```
    Check its *Generated* time. If it is older than the work needs, run the snapshot workflow
    (`project-snapshot.yml`, `workflow_dispatch`, a repository-scoped call), wait for it, and read again.
-2. **`MEMORY.md` repositories**: `MEMORY.md` (often already loaded through `CLAUDE.md`).
+2. **`MEMORY.md` repositories**: `MEMORY.md` (often already loaded through `AGENTS.md` or `CLAUDE.md`).
    If its *Now* names a handoff or session file, read that one file, not the whole folder.
 
 If Kade pasted a starter prompt from `session-handoff`, it names the branch, PR and next step:
@@ -27,7 +29,9 @@ trust it, then confirm against the sources above.
 
 ## 2. Read the recent work
 
-- Open PRs from `claude/*` branches: their status and CI result.
+- Open PRs and pushed branches from `claude/*` and `agent/*` (Claude's and other agents' work):
+  their status and CI result. A branch without a PR is work in flight; its last commit says where
+  it stopped.
 - The last 3 to 5 merged PRs: read their *NOT VERIFIED* and *Wrong turns* sections.
 - `git status` and the current branch. Uncommitted changes are Kade's unless the starter
   prompt says they are a parked task.
