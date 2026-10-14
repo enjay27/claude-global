@@ -31,11 +31,30 @@
 | Rules for some paths | `.claude/rules/*.md`, front matter `paths:` | `.agents/rules/*.md`, front matter `trigger: glob` and `globs:`; no valid `trigger` and the file is silently dropped |
 | Including a file | `@path` | `@[label](path)` inlines (`~/` expands); a bare `@file` is only a path mention |
 | Limits | Kade's rule: 100 lines | 24 KB per file after includes; 20k tokens for global and always-on rules together |
-| Skills | claude.ai account; `~/.claude/skills`, `.claude/skills` | CLI `~/.gemini/antigravity-cli/skills/`; repository `.agents/skills/`; same `SKILL.md` format |
-| Hooks | `settings.json`; stdout text joins the context | `~/.gemini/config/hooks.json` or `.agents/hooks.json`; events `SessionStart`, `PreInvocation`, `PostInvocation`, `PreToolUse`, `PostToolUse`, `Stop`; stdin camelCase JSON with `transcriptPath`, no token count; context goes in through `injectSteps` in a JSON reply; timeout in seconds, 30 by default |
+| Skills | claude.ai account; `~/.claude/skills`, `.claude/skills` | IDE and app `~/.gemini/config/skills/` (proven in step 3); CLI `~/.gemini/antigravity-cli/skills/`; repository `.agents/skills/`; same `SKILL.md` format |
+| Hooks | `settings.json`; stdout text joins the context | `~/.gemini/config/hooks.json` or `.agents/hooks.json`; events `SessionStart`, `PreInvocation`, `PostInvocation`, `PreToolUse`, `PostToolUse`, `Stop`; stdin camelCase JSON with `transcriptPath`, no token count; context goes in through `injectSteps` in a JSON reply; timeout in seconds, 30 by default. The IDE 1.107.0's own docs list no `SessionStart` and inject only `ephemeralMessage`, `userMessage` or `toolCall` |
 
 A `CLAUDE.md` holding only `@AGENTS.md` makes Claude read `AGENTS.md` in every session, never
 twice. Claude Code never reads `.agents/`; Antigravity never reads `.claude/`.
+
+### Step 3 results (2026-10-15, Kade's PC: Claude Code 2.1.296, Antigravity IDE 1.107.0)
+
+Fixtures in temporary folders and in `~/.gemini`, each holding a canary word; all removed after.
+
+| Check | Result |
+|---|---|
+| Claude, project: `CLAUDE.md` is only `@AGENTS.md` | **Pass.** The canary in `AGENTS.md` answered |
+| Claude, `AGENTS.md` alone; `CLAUDE.md` without the import | **Pass** both: read alone; not read beside a `CLAUDE.md`. So the shim loads it exactly once |
+| Claude, user level (`~/.claude/CLAUDE.md` → `@AGENTS.md`) | **NOT VERIFIED:** a temporary `CLAUDE_CONFIG_DIR` is not logged in, and credentials are not copied. Step 7 proves it on a real machine |
+| IDE: `~/.gemini/AGENTS.md` as one `@[label](~/...)` line | **Pass.** The canary was in the first reply, before any tool call: the include inlines and `~/` expands |
+| IDE: a skill in `~/.gemini/config/skills/` | **Pass.** It loaded and was opened as a skill file |
+| IDE: a hook in `~/.gemini/config/hooks.json` | **NOT VERIFIED: did not run.** Tried `SessionStart` (not in the IDE's docs), then `PreInvocation` with an `ephemeralMessage`; no log, no message. Cause unknown: the IDE may not read the global file, or a hook may need turning on under Customizations |
+| IDE: token usage in `transcript.jsonl` | **None.** No token or usage field in `transcript.jsonl` or `transcript_full.jsonl` |
+| `agy` CLI | **NOT VERIFIED:** not installed on this PC |
+
+Found on the way: with nothing to answer from, the IDE agent ran about 30 shell commands without
+asking (all reads): it listed the home folder and searched other tools' files, Claude Code's
+session transcript in `~/.claude/projects/` among them (section 6).
 
 ## 2. Target
 
@@ -45,8 +64,8 @@ twice. Claude Code never reads `.agents/`; Antigravity never reads `.claude/`.
 | On disk | sparse checkout in `~/.claude` | unchanged: one copy, in `~/.claude` |
 | Claude Code | `~/.claude/CLAUDE.md` | `~/.claude/CLAUDE.md` → `@AGENTS.md` → `~/.claude/AGENTS.md` |
 | Antigravity | — | `~/.gemini/AGENTS.md` is the one line `@[Kade's global rules](~/.claude/AGENTS.md)`: no symlink or copy, so it works on Windows |
-| Skills | `claude-skills`, saved to the claude.ai account | `agent-skills/` here (not `skills/`: inside `~/.claude` Claude would load them a second time beside the account skills); still saved to the account for Claude; copied to `~/.gemini/antigravity-cli/skills/` |
-| Hooks | `global-sync`, `context-guard`, Claude only | also an Antigravity `SessionStart` hook running `global-sync`, replying in JSON; `context-guard` only if the transcript holds token usage (step 3) |
+| Skills | `claude-skills`, saved to the claude.ai account | `agent-skills/` here (not `skills/`: inside `~/.claude` Claude would load them a second time beside the account skills); still saved to the account for Claude; copied to `~/.gemini/config/skills/` (IDE, app) and `~/.gemini/antigravity-cli/skills/` (CLI) |
+| Hooks | `global-sync`, `context-guard`, Claude only | also an Antigravity `SessionStart` hook running `global-sync`, replying in JSON, where the product has the event (step 3: the IDE's docs do not); `context-guard` only if a transcript holds token usage (step 3: the IDE's does not) |
 | Agents | Claude assumed everywhere | `agents.json`: per agent its rules pointer, skills folder, hook file and reply format. `global-sync --install` and the setup scripts go through it; a new agent is one entry |
 | Each repository | `CLAUDE.md` | `AGENTS.md` (`git mv`) and the `@AGENTS.md` shim |
 
@@ -87,10 +106,8 @@ Each step is one PR, merged before the next.
    `enjay27/claude-global` or `enjay27/claude-skills`. Kade transfers both and renames this one
    (`gh` in a local session); the PR fixes the names found. GitHub redirects meanwhile; the
    cloud environment's setup script is pasted by Kade.
-3. **Checks before building.** Here: a Claude session with a temporary HOME loads
-   `~/.claude/CLAUDE.md` → `@AGENTS.md`. On Kade's PC (`agy` needs his sign-in): `agy` follows
-   the `~/.gemini/AGENTS.md` include, lists the skills from `~/.gemini/antigravity-cli/skills/`,
-   shows a `SessionStart` `injectSteps` message, and whether `transcript.jsonl` carries token usage.
+3. **Checks before building.** Done 2026-10-15 with the IDE; results in section 1. The CLI and
+   the IDE's hooks are still unproven.
 4. **Skills move in** under `agent-skills/`, history kept; `claude-skills` archived.
 5. **Skills accept both:** "the repository's `AGENTS.md` (or `CLAUDE.md` where not yet
    migrated)", `claude/*` or `agent/*`, and what to do without `context-guard`. Kade saves them
@@ -103,10 +120,11 @@ Each step is one PR, merged before the next.
    of the new `CLAUDE.md`.
 8. **The rules' wording:** `AGENTS.md` throughout, the branch and author rules of decision 2,
    Claude-only rules marked. Release; raise `global_rules` in `code-quality-assurance`.
-9. **`agents.json` with Antigravity:** the include line, the skills copy, the `SessionStart` hook.
+9. **`agents.json` with Antigravity:** the include line, the skills copied to both folders, the
+   hook. The hook is tested first in the product Kade uses (the IDE's did not run in step 3).
    The setup scripts stop before overwriting a file of Kade's, as they do today.
-10. **`context-guard` for Antigravity** (`PreInvocation`, `injectSteps`), only if step 3 found
-    token usage.
+10. **`context-guard` for Antigravity** (`PreInvocation`, `injectSteps`), only if a transcript
+    holds token usage. The IDE's does not (step 3); the CLI's is unchecked.
 11. **Each working repository, one PR each:** `git mv` to `AGENTS.md`, the shim, the
     `.agents/rules` copies, and `agent/*` in its auto-merge workflow if it has one. Pilot on
     `stella-rain/moderation` (not `stage-template`: a template's file is copied into every new
@@ -116,9 +134,14 @@ Each step is one PR, merged before the next.
 
 ## 6. Open
 
-Nothing. The two questions this section held are decisions 5 (the name, chosen over
-`agent-home` and `ruleset`) and 6 (the author, chosen over a Google address). No control checks
-authors today.
+1. **Antigravity running commands unasked** (step 3): before it works in Kade's repositories,
+   Kade decides its terminal setting (ask before each command, or an allow list). Its reads reach
+   other tools' transcripts and caches in the home folder.
+2. **The CLI:** install `agy` (Google's script, a browser sign-in) only if Kade will use it; it is
+   the product whose docs have `SessionStart`.
+
+Decisions 5 (the name, chosen over `agent-home` and `ruleset`) and 6 (the author, chosen over a
+Google address) settled what this section held before. No control checks authors today.
 
 ## 7. How it is tested
 
@@ -134,5 +157,6 @@ authors today.
 
 - Claude Code: <https://code.claude.com/docs/en/memory> (AGENTS.md), <https://code.claude.com/docs/en/skills>
 - Antigravity: <https://antigravity.google/docs/rules/>, <https://antigravity.google/docs/hooks/>,
-  <https://antigravity.google/docs/cli/gcli-migration/>
+  <https://antigravity.google/docs/cli/gcli-migration/>, <https://antigravity.google/docs/skills/>
+  (read 2026-10-15); the IDE's own copy in `~/.gemini/antigravity-ide/builtin/skills/agy-customizations/docs/`
 - Gemini CLI's retirement notice: <https://geminicli.com/docs/hooks/>
