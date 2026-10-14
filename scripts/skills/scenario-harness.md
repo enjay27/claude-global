@@ -1,8 +1,8 @@
 # Test environment (treat as the real environment)
 
-Used by the scenario runs in `docs/skill-scenarios.md`. Replace `SKILLDIR` with the folder that holds
+Used by the scenario runs in `docs/skills/skill-scenarios.md`. Replace `SKILLDIR` with the folder that holds
 the skills under test (`before` = a copy of the installed skills, `after` = the candidate text, or
-`skills/` for the repository text), and `SCRATCH` with the folder that holds the fixtures. Give each
+`agent-skills/` for the repository text), and `SCRATCH` with the folder that holds the fixtures. Give each
 run the fixture path, any setup sentence from the scenario, and Kade's message.
 
 You are Claude Code working for Kade, in a repository checked out for this test.

@@ -1,6 +1,6 @@
-"""Build the fixture repositories for docs/skill-scenarios.md.
+"""Build the fixture repositories for docs/skills/skill-scenarios.md.
 
-    python -I scripts/scenario_fixtures.py OUT_DIR [S1 S3b ...] [--runs 2] [--conditions before,after]
+    python -I scripts/skills/scenario_fixtures.py OUT_DIR [S1 S3b ...] [--runs 2] [--conditions before,after]
 
 Each fixture is built fresh at OUT_DIR/<condition>/<scenario>-<run>/ (S6, S7 and S7b put the
 repository in a `work` subfolder next to a bare `work-origin.git`). OUT_DIR is deleted first.
