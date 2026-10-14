@@ -5,10 +5,12 @@ description: Kade's standing way of working in every one of his repositories (St
 
 # Kade's workflow
 
-The repository's `CLAUDE.md` says **what** applies there: its parts, gates, branches and where
-state lives. This skill says **how** to work in any of them. The standing rules (plan first, test
-first, gates, commit style) are in `~/.claude/CLAUDE.md`; this skill holds the procedures behind
-them. When to recommend a handoff from the context size is the `handoff-trigger` skill.
+The repository's `AGENTS.md` (or `CLAUDE.md` where not yet migrated) says **what** applies there:
+its parts, gates, branches and where state lives. This skill says **how** to work in any of them,
+whichever agent you are. The standing rules (plan first, test first, gates, commit style) are the
+global rules in `~/.claude/AGENTS.md` (`~/.claude/CLAUDE.md` until it moves); this skill holds the
+procedures behind them. When to recommend a handoff from the context size is the
+`handoff-trigger` skill.
 
 ## 1. Plan before editing
 
@@ -58,10 +60,10 @@ them. When to recommend a handoff from the context size is the `handoff-trigger`
 
 ## 5. Record state where the repository keeps it
 
-- **Org Project repositories** (Stella Rain in `stella-rain`, Resonance in `star-resonance`): issues plus `cmd:` labels
+- **Org Project repositories** (Stella Rain in `stella-rain`, Resonance in `star-resonance`, Kade Agent in `kade-agent`): issues plus `cmd:` labels
   (`cmd:status-now`, `cmd:verify-not-verified`), never a state file. A check that needs a
   machine or a device: `cmd:verify-needs-windows`, `-macos`, `-android` or `-iphone`. A decision
   that is Kade's: assign the issue to him, no label; work a session can take stays unassigned.
 - **`MEMORY.md` repositories**: update its *Now* section, one line per item, decisions by ID
-  only. Detail goes where that repository's `CLAUDE.md` says.
+  only. Detail goes where that repository's `AGENTS.md` (or `CLAUDE.md`) says.
 - State changes go in the same branch or commit as the work they describe.
