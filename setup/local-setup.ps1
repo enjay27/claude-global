@@ -1,4 +1,4 @@
-# Checks out enjay27/claude-global into ~/.claude on Windows, once (docs/global-rules-plan.md,
+# Checks out kade-agent/agent-config into ~/.claude on Windows, once (docs/global-rules-plan.md,
 # section 7). macOS and Linux: setup/local-setup.sh.
 #
 # Run it from PowerShell, not Git Bash: Git Bash turns the sparse-checkout paths (/CLAUDE.md ...)
@@ -12,7 +12,7 @@
 # For tests: CLAUDE_GLOBAL_HOME replaces the home folder, CLAUDE_GLOBAL_REMOTE the repository.
 # Written for Windows PowerShell 5.1.
 $ErrorActionPreference = 'Continue'
-$remote = 'https://github.com/enjay27/claude-global'
+$remote = 'https://github.com/kade-agent/agent-config'
 if ($env:CLAUDE_GLOBAL_REMOTE) { $remote = $env:CLAUDE_GLOBAL_REMOTE }
 $base = $HOME
 if ($env:CLAUDE_GLOBAL_HOME) { $base = $env:CLAUDE_GLOBAL_HOME }

@@ -113,3 +113,26 @@ test("no tracked file names the reports' repository by its old name", () => {
   }
   assert.deepStrictEqual(found, []);
 });
+
+// This repository and the skills' moved to kade-agent on 2026-10-15 (agent-migration-plan.md,
+// step 2). The dated plans and the review snapshot keep the names they had when written.
+const HISTORY = new Set([
+  "docs/agent-migration-plan.md",
+  "docs/global-rules-plan.md",
+  "docs/governance-plan.md",
+  "docs/refactor-plan.md",
+  "docs/repo-rules-review.html",
+]);
+test("no tracked file outside the dated plans names this repository or the skills' by the old owner", () => {
+  const old = /enjay27\\?\/claude-(global|skills)\b/; // also inside a regular expression
+  const found = [];
+  for (const f of tracked) {
+    if (HISTORY.has(f)) continue;
+    const full = path.join(ROOT, f);
+    if (!fs.statSync(full).isFile()) continue;
+    fs.readFileSync(full, "utf8").split("\n").forEach((line, i) => {
+      if (old.test(line)) found.push(`${f}:${i + 1}`);
+    });
+  }
+  assert.deepStrictEqual(found, []);
+});
