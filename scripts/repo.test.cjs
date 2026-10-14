@@ -69,11 +69,17 @@ test("the three setup scripts check out the same paths, AGENTS.md among them", (
   assert.deepStrictEqual(excluded(["AGENTS.md", "CLAUDE.md"]), [], "deploy-exclude allows both rules files");
 });
 
-test("CLAUDE.md starts with a release stamp and stays within 60 lines", () => {
-  const text = fs.readFileSync(path.join(ROOT, "CLAUDE.md"), "utf8");
+test("AGENTS.md starts with a release stamp and stays within 60 lines", () => {
+  const text = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
   assert.ok(readStamp(text), 'line 1 must be "Global rules: v<version>"');
   const lines = text.trimEnd().split("\n").length;
-  assert.ok(lines <= 60, `CLAUDE.md is ${lines} lines; the cap is 60 (it is loaded in every session)`);
+  assert.ok(lines <= 60, `AGENTS.md is ${lines} lines; the cap is 60 (it is loaded in every session)`);
+});
+
+// Claude Code reads CLAUDE.md, not AGENTS.md: the shim imports the rules and holds nothing else.
+test("CLAUDE.md is the one line @AGENTS.md", () => {
+  const text = fs.readFileSync(path.join(ROOT, "CLAUDE.md"), "utf8").replace(/\r\n/g, "\n");
+  assert.strictEqual(text, "@AGENTS.md\n");
 });
 
 // The global rule on GitHub workflows, applied to this repository's own.
