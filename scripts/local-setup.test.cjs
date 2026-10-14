@@ -38,8 +38,9 @@ function git(cwd, ...args) {
   return execFileSync("git", ["-C", cwd, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 }
 
-// An origin with releases v2026.01.01 and v2026.01.02 laid out like claude-global.
-function origin() {
+// An origin with releases v2026.01.01 and v2026.01.02 laid out like claude-global. With `agents`,
+// v2026.01.02 is laid out as after the AGENTS.md move: the rules in AGENTS.md, CLAUDE.md the shim.
+function origin({ agents = false } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "lsetup-"));
   const work = path.join(root, "work");
   fs.mkdirSync(path.join(work, "hooks"), { recursive: true });
@@ -52,7 +53,13 @@ function origin() {
   }
   fs.writeFileSync(path.join(work, "docs", "plan.md"), "dev only\n");
   for (const tag of ["v2026.01.01", "v2026.01.02"]) {
-    fs.writeFileSync(path.join(work, "CLAUDE.md"), `Global rules: ${tag}\n\nA rule.\n`);
+    const rules = `Global rules: ${tag}\n\nA rule.\n`;
+    if (agents && tag === "v2026.01.02") {
+      fs.writeFileSync(path.join(work, "AGENTS.md"), rules);
+      fs.writeFileSync(path.join(work, "CLAUDE.md"), "@AGENTS.md\n");
+    } else {
+      fs.writeFileSync(path.join(work, "CLAUDE.md"), rules);
+    }
     git(work, "add", "-A");
     git(work, "commit", "-q", "-m", tag);
     git(work, "tag", tag);
@@ -88,6 +95,25 @@ for (const shell of SHELLS) {
     assert.strictEqual(git(w.c, "status", "--short"), "");
     assert.strictEqual(read(w, ".credentials.json"), "secret");
     assert.ok(!fs.existsSync(path.join(w.c, "docs")));
+  });
+
+  test(`${shell.name}: a release laid out with AGENTS.md checks it out and names its stamp`, { skip: shell.skip }, () => {
+    const w = origin({ agents: true });
+    const r = setup(shell, w);
+    assert.strictEqual(r.status, 0, r.stdout + r.stderr);
+    assert.strictEqual(read(w, "AGENTS.md").split(/\r?\n/)[0], "Global rules: v2026.01.02");
+    assert.strictEqual(read(w, "CLAUDE.md").trim(), "@AGENTS.md");
+    assert.match(r.stdout, /local-setup: Global rules: v2026\.01\.02/);
+    assert.strictEqual(git(w.c, "status", "--short"), "");
+  });
+
+  test(`${shell.name}: an AGENTS.md of yours in the way stops it`, { skip: shell.skip }, () => {
+    const w = origin({ agents: true });
+    fs.writeFileSync(path.join(w.c, "AGENTS.md"), "mine\n");
+    const r = setup(shell, w);
+    assert.notStrictEqual(r.status, 0);
+    assert.match(r.stdout + r.stderr, /nothing was changed/i);
+    assert.strictEqual(read(w, "AGENTS.md"), "mine\n");
   });
 
   test(`${shell.name}: works on CLAUDE_GLOBAL_HOME, never on HOME`, { skip: shell.skip }, () => {
