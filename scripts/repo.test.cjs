@@ -12,7 +12,7 @@ const { readStamp, mergeSettings } = require("../hooks/global-sync.cjs");
 
 const ROOT = path.join(__dirname, "..");
 // Tracked but never deployed: the sparse checkout in ~/.claude leaves these out.
-const DEV_ONLY = ["setup/", "scripts/", "docs/", ".github/", ".claude/", "README.md", "deploy-exclude"];
+const DEV_ONLY = ["setup/", "scripts/", "docs/", ".github/", ".claude/", "agent-skills/", "README.md", "deploy-exclude"];
 
 function git(args, input) {
   return execFileSync("git", ["-C", ROOT, ...args], { encoding: "utf8", input, stdio: ["pipe", "pipe", "pipe"] });
@@ -53,6 +53,20 @@ test("the setup script checks out exactly the allowed top-level paths", () => {
       `${f} is allowed but not in the setup script's sparse-checkout list`
     );
   }
+});
+
+// The AGENTS.md move (docs/agent-migration-plan.md, step 7): a machine set up from any script must
+// check AGENTS.md out, and the allowlist must let it be tracked in ~/.claude.
+test("the three setup scripts check out the same paths, AGENTS.md among them", () => {
+  const lists = ["cloud-setup.sh", "local-setup.sh", "local-setup.ps1"].map((name) => {
+    const script = fs.readFileSync(path.join(ROOT, "setup", name), "utf8");
+    return [name, /sparse-checkout set --no-cone (.+?)\s*(\\|$)/m.exec(script)[1].trim().split(/\s+/)];
+  });
+  for (const [name, list] of lists) {
+    assert.ok(list.includes("/AGENTS.md"), `${name}: /AGENTS.md in the sparse-checkout list`);
+    assert.deepStrictEqual(list, lists[0][1], `${name} checks out what ${lists[0][0]} does`);
+  }
+  assert.deepStrictEqual(excluded(["AGENTS.md", "CLAUDE.md"]), [], "deploy-exclude allows both rules files");
 });
 
 test("CLAUDE.md starts with a release stamp and stays within 60 lines", () => {
@@ -135,4 +149,20 @@ test("no tracked file outside the dated plans names this repository or the skill
     });
   }
   assert.deepStrictEqual(found, []);
+});
+
+// Step 4: the skills live in agent-skills/<name>/SKILL.md. Claude Code and Antigravity both need
+// front matter with a description; Claude's name must match the folder.
+test("every skill in agent-skills/ has front matter naming its folder and a description", () => {
+  const dir = path.join(ROOT, "agent-skills");
+  const names = fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
+  assert.ok(names.length > 0, "agent-skills/ holds no skill");
+  for (const name of names) {
+    const text = fs.readFileSync(path.join(dir, name, "SKILL.md"), "utf8");
+    const front = /^---\n([^]*?)\n---\n/.exec(text);
+    assert.ok(front, `${name}: SKILL.md starts with front matter between --- lines`);
+    // YAML values may be quoted (code-graph's are).
+    assert.match(front[1], new RegExp(`^name: ("?)${name}\\1$`, "m"), `${name}: name must be the folder's`);
+    assert.match(front[1], /^description: "?[^\s"]/m, `${name}: description must not be empty`);
+  }
 });

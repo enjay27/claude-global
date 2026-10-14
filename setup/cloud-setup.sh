@@ -10,7 +10,7 @@ mkdir -p "$c" && cd "$c" || exit 0
 [ -d .git ] || git init -q
 git remote get-url origin >/dev/null 2>&1 \
   || git remote add origin https://github.com/kade-agent/agent-config
-git sparse-checkout set --no-cone /CLAUDE.md /rules/ /hooks/ /settings.global.json /.gitignore /.gitattributes
+git sparse-checkout set --no-cone /AGENTS.md /CLAUDE.md /rules/ /hooks/ /settings.global.json /.gitignore /.gitattributes
 if git fetch -q --depth 1 origin "$ref" && git checkout -q -f --detach FETCH_HEAD; then
   git show HEAD:deploy-exclude > .git/info/exclude
   node hooks/global-sync.cjs --install
