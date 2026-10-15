@@ -82,6 +82,22 @@ test("CLAUDE.md is the one line @AGENTS.md", () => {
   assert.strictEqual(text, "@AGENTS.md\n");
 });
 
+// The rules for every agent (docs/agent-migration-plan.md, step 8, decisions 2 and 6): each agent
+// authors its own commits and has its own branch prefix.
+test("AGENTS.md names each agent's commit author and branch prefix", () => {
+  const text = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
+  for (const s of ["Claude <noreply@anthropic.com>", "Antigravity <antigravity@noreply.invalid>", "claude/<task>", "agent/<task>"]) {
+    assert.ok(text.includes(s), `AGENTS.md must name ${s}`);
+  }
+});
+
+// Repositories move to AGENTS.md one by one (step 11), so a rule naming CLAUDE.md names AGENTS.md too.
+test("every line of AGENTS.md that names CLAUDE.md also names AGENTS.md", () => {
+  const lines = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8").split("\n");
+  const bare = lines.map((l, i) => [i + 1, l]).filter(([, l]) => l.includes("CLAUDE.md") && !l.includes("AGENTS.md"));
+  assert.deepStrictEqual(bare, []);
+});
+
 // The global rule on GitHub workflows, applied to this repository's own.
 test("workflows grant nothing at the top and keep no credentials after checkout", () => {
   const dir = path.join(ROOT, ".github", "workflows");
