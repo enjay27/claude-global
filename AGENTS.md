@@ -2,13 +2,13 @@ Global rules: v2026.10.09.5
 
 # Kade's global rules
 
-For every repository of Kade's (`stella-rain`, `star-resonance`, `enjay27`, `kade-agent`), everywhere.
+For any agent, anywhere, in Kade's repositories (`stella-rain`, `star-resonance`, `enjay27`, `kade-agent`).
 
 ## Precedence
 
 - Follow `repo-workflow` for procedures (PR description, state), `handoff-trigger` for handoffs.
-- A repository's `CLAUDE.md` wins over this file and the skill. It names each global rule it
-  changes under "Overrides of global rules"; follow those and nothing else silently.
+- A repository's `AGENTS.md` (`CLAUDE.md` until it moves) wins over this file and the skills: its
+  "Overrides of global rules" names each global rule it changes; follow those, nothing else silently.
 
 ## How to work
 
@@ -27,19 +27,18 @@ For every repository of Kade's (`stella-rain`, `star-resonance`, `enjay27`, `kad
 
 ## Git and pull requests
 
-- Commits Claude makes are authored `Claude <noreply@anthropic.com>`; locally pass it per commit
-  (`git -c user.name=Claude -c user.email=noreply@anthropic.com commit`), never in git config.
-  PRs, issues and merges are Kade's: Claude opens them through his GitHub account.
+- Each agent authors its own commits, `Claude <noreply@anthropic.com>` or
+  `Antigravity <antigravity@noreply.invalid>`, passed per commit (`git -c user.name=… -c user.email=…
+  commit`), never in git config. PRs, issues and merges are Kade's: agents open them through his account.
 - Subject: the finding or the point of the change, not the files touched. Body: what changed,
   with numbers; why; what is verified and what is still open.
 - `git status` before `git add -A`, never after. Never commit work you did not do.
 - Never commit a broken or half-applied tree to save progress: use a branch. Never rewrite pushed history.
-- Local sessions: follow the repository's flow.
-- Cloud sessions: branch `claude/<task>` from an up-to-date `main`, push, open a PR, then turn
-  on GitHub auto-merge for it, unless the repository merges through its own auto-merge
-  workflow. Never merge by hand; never commit to `main`.
-- One task per PR; start the next only after the merge. Wait with the PR event subscription and
-  a scheduled check-in, never with `sleep` loops.
+- Branches: `claude/<task>` for Claude, `agent/<task>` for other agents. Local sessions follow the
+  repository's flow; cloud sessions branch from an up-to-date `main`, push, open a PR, then turn on
+  GitHub auto-merge unless it has its own auto-merge workflow. Never merge by hand; never commit to `main`.
+- One task per PR; start the next only after the merge. Never wait with `sleep` loops
+  (*Claude only:* wait with the PR event subscription and a scheduled check-in).
 - Never skip, disable or weaken a test or check to get green. A failure that is not this PR's
   (red on `main` too) is said on the PR.
 
@@ -52,9 +51,10 @@ For every repository of Kade's (`stella-rain`, `star-resonance`, `enjay27`, `kad
   `persist-credentials: false`; actions pinned to a major version, except
   `dtolnay/rust-toolchain@stable` (no version tags: its ref names the toolchain).
 
-## Machines and Claude's own files
+## Machines and the agents' own files
 
 - Every repository has `.gitattributes` with `* text=auto eol=lf`; no CRLF files.
-- On Kade's Windows PC the remote file tools cannot write `.github/` or `.claude/`: deliver
-  those files as a zip laid out from the folder above the repositories, with the commit command.
-- `CLAUDE.md` at most 100 lines; each `.claude/rules/*.md` at most 80 lines, with `paths:`.
+- *Claude only:* on Kade's Windows PC the remote file tools cannot write `.github/` or `.claude/`:
+  deliver them as a zip laid out from the folder above the repositories, with the commit command.
+- `AGENTS.md` (`CLAUDE.md` until it moves) at most 100 lines, a `CLAUDE.md` beside it only `@AGENTS.md`;
+  each `.claude/rules/*.md` at most 80 lines with `paths:`, its `.agents/rules/` copy with `globs:`.
