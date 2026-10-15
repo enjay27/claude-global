@@ -1,8 +1,9 @@
 # kade-agent/agent-config: this repository's own notes
 
-The root `CLAUDE.md` is the global rules, deployed to every machine as `~/.claude/CLAUDE.md`, so
-it holds nothing about this repository. Claude Code reads this file as well when a session opens
-here; `deploy-exclude` and the sparse checkout keep it out of `~/.claude`.
+The root `AGENTS.md` is the global rules, deployed to every machine as `~/.claude/AGENTS.md`, and
+the root `CLAUDE.md` is the one line `@AGENTS.md` that imports them, so neither holds anything
+about this repository. Claude Code reads this file as well when a session opens here;
+`deploy-exclude` and the sparse checkout keep it out of `~/.claude`.
 
 ## State
 
@@ -20,7 +21,7 @@ here; `deploy-exclude` and the sparse checkout keep it out of `~/.claude`.
 
 | Part | Gate |
 |---|---|
-| `CLAUDE.md`, `hooks/`, `scripts/`, `setup/`, `settings.global.json`, `deploy-exclude` | `node --test` (CI: `test.yml`) |
+| `AGENTS.md`, `CLAUDE.md`, `hooks/`, `scripts/`, `setup/`, `settings.global.json`, `deploy-exclude` | `node --test` (CI: `test.yml`) |
 | `setup/local-setup.sh` | Its tests skip on Windows: NOT VERIFIED there |
 | The rules reaching sessions | A release: a PR from `main` into `rc`, then Actions → Release on `rc` (Kade) |
 | `.github/workflows/` | YAML parses; NOT VERIFIED until they have run on GitHub |
