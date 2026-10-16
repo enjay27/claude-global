@@ -1,4 +1,8 @@
 {
+  "env": {
+    "DO_NOT_TRACK": "1",
+    "GRAFT_TRAIL_AUTOPUSH": "0"
+  },
   "hooks": {
     "SessionStart": [
       {

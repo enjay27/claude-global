@@ -29,7 +29,9 @@ const { execFileSync } = require("child_process");
 const RELEASE = /^v\d+(\.\d+)*$/;
 const STAMP = /^Global rules: (\S+)\s*$/;
 // Hook entries whose command points into ~/.claude/hooks/ belong to claude-global. Merging removes
-// all of them, from every event, then adds those in settings.global.json; nothing else is touched.
+// all of them, from every event, then adds those in settings.global.json. Its env keys are set over
+// the user's same keys; other env keys and everything else are not touched. A key later dropped
+// from the fragment stays in settings.json until removed by hand.
 const OWNED = "/.claude/hooks/";
 
 function compareVersions(a, b) {
@@ -66,6 +68,7 @@ function mergeSettings(settings, fragment) {
     hooks[event] = [...(hooks[event] || []), ...structuredClone(groups)];
   }
   settings.hooks = hooks;
+  if (fragment.env) settings.env = { ...settings.env, ...fragment.env };
   return settings;
 }
 

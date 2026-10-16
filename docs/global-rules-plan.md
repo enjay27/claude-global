@@ -140,7 +140,7 @@ claude-global/
     context-guard.cjs     moved from claude-skills; path now $HOME/.claude/hooks/
     global-sync.cjs       new: update to the latest tag, merge the settings fragment
     *.test.cjs
-  settings.global.json    the hook entries that global-sync merges into ~/.claude/settings.json
+  settings.global.json    the hook entries and env keys that global-sync merges into ~/.claude/settings.json
   setup/cloud-setup.sh    the text pasted into the cloud environment's setup script
   scripts/release.cjs     next / stamp / latest, called by the Release workflow
   scripts/*.test.cjs      release tests; repository checks (allowlist, sparse list, stamp)

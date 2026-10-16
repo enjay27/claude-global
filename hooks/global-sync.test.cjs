@@ -70,6 +70,25 @@ test("mergeSettings replaces the step 1 probe and drops our entries from events 
   assert.strictEqual(out.hooks.UserPromptSubmit, undefined);
 });
 
+test("mergeSettings sets the fragment's env keys and keeps the user's own", () => {
+  const before = { env: { MINE: "1", DO_NOT_TRACK: "0" } };
+  const fragment = { ...FRAGMENT, env: { DO_NOT_TRACK: "1", GRAFT_TRAIL_AUTOPUSH: "0" } };
+  const once = gs.mergeSettings(structuredClone(before), fragment);
+  assert.deepStrictEqual(once.env, { MINE: "1", DO_NOT_TRACK: "1", GRAFT_TRAIL_AUTOPUSH: "0" });
+  assert.deepStrictEqual(gs.mergeSettings(structuredClone(once), fragment), once);
+});
+
+test("mergeSettings adds no env key when the fragment has none", () => {
+  assert.strictEqual(gs.mergeSettings({}, FRAGMENT).env, undefined);
+  assert.deepStrictEqual(gs.mergeSettings({ env: { MINE: "1" } }, FRAGMENT).env, { MINE: "1" });
+});
+
+test("the deployed fragment turns off Graft's telemetry and trail push", () => {
+  const fragment = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "settings.global.json"), "utf8"));
+  assert.strictEqual(fragment.env?.DO_NOT_TRACK, "1");
+  assert.strictEqual(fragment.env?.GRAFT_TRAIL_AUTOPUSH, "0");
+});
+
 // ---- against real git repositories ---------------------------------------------------------
 
 function git(cwd, ...args) {
