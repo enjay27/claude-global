@@ -26,6 +26,7 @@ about this repository. Claude Code reads this file as well when a session opens 
 | The rules reaching sessions | A release: a PR from `main` into `rc`, then Actions → Release on `rc` (Kade) |
 | Antigravity reading the rules and skills (`agent-sync`) | After a release, from the second Claude session start: an Antigravity IDE session answers from them (Kade, Windows) |
 | `.github/workflows/` | YAML parses; NOT VERIFIED until they have run on GitHub |
+| The code-graph bundle (`scripts/code-graph-bundle.cjs`) | On Linux x86_64 with uv at its pinned version: `build`, `full`, `licenses`, `verify` and `pack` as the workflow runs them (CI: `code-graph-bundle.yml`) |
 
 ## Version control
 

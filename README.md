@@ -27,6 +27,8 @@ the skills moved in from `kade-agent/claude-skills` with their history (step 4).
 | `scripts/skills/` | Scenario harness and fixtures for testing the skills | Run by the session changing a skill |
 | `docs/skills/` | The skills' scenarios, their results, and the improvement plan | Read by the session changing a skill |
 | `scripts/release.cjs` | `next`, `stamp <tag>`, `latest` | Called by the Release workflow |
+| `.github/workflows/code-graph-bundle.yml` | The code-graph bundle: code-review-graph prebuilt for cloud sessions (Linux x86_64), released as `code-graph-<VERSION>-<n>`, never marked latest | Runs on a push to `main` that changes `VERSION` in `cg.cjs`, the lock or the build; by hand with `rebuild` for a new build number |
+| `scripts/code-graph-bundle.cjs`, `scripts/code-graph-bundle/requirements.txt` | Builds, checks (licenses, output against a full install) and packs the bundle; the lock is the 8 packages `cg` imports, with hashes | After changing `VERSION` in `cg.cjs`: `node scripts/code-graph-bundle.cjs lock` in the same PR |
 | `docs/global-rules-plan.md` | One global rule set checked out as `~/.claude` on every machine and in the cloud, plus rules per repository | Closed 2026-10-09; every step done |
 | `docs/refactor-plan.md` | Moving `CLAUDE.md`, `MEMORY.md`, skills and rules to this setup, per repository | Read by the session doing the work |
 | `docs/governance-plan.md` | Accepted: two daily reports over the working repositories, drift (rules and workflows, filed as issues) and daily results (per owner), built in `kade-agent/code-quality-assurance` | Built step by step (section 9) |
@@ -50,7 +52,7 @@ dated records in `docs/skills/` were written in `claude-skills` and keep its pat
 ## Tests
 
 ```bash
-node --test        # every *.test.cjs: hooks, release script, code-graph wrapper, repository checks
+node --test        # every *.test.cjs: hooks, release script, code-graph wrapper and bundle, repository checks
 ```
 
 ## The context hook
