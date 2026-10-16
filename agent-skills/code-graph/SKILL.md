@@ -49,7 +49,10 @@ Open the source only when the graph's answer is not enough.
   of the same name may be the one called (in stella-rain/core, `tests/spike.rs` calls
   `Spike.state_hash`, and is listed under `Engine.state_hash` with a `?`). Check those lines,
   and run the `git grep` line `cg` prints when the answer matters.
-- `[test]` marks a test function.
+- `[test]` marks a test function. `cg tests` lists the tests that call the target, including tests
+  matched by name only (marked `?`).
+- `shown, <n> omitted` in the first line: code-review-graph shows at most 100 call sites. Run the
+  printed `git grep` for the rest; tests among omitted callers are missing from `cg tests`.
 - A call through a variable (`session.choose(i)`) can resolve to a same-named function in the
   caller's own file without a `?`. Read the call site when a caller looks unlikely.
 - Calls across languages are not tracked: GDScript calling into Rust through gdext, or JS

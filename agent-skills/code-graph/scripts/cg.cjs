@@ -114,6 +114,23 @@ function soleDefinition(json, asked) {
   return exact.length === 1 ? exact[0].qualified_name : null;
 }
 
+// tests_for keeps only calls resolved to the target, so a function called through a variable shows
+// no tests. Add the test functions among its callers: one row per test, at its first call site,
+// still marked when matched by name only. Callers omitted by code-review-graph are counted.
+function mergeTests(tests, callers) {
+  if (tests.status !== "ok" || callers.status !== "ok") return tests;
+  const seen = new Set(tests.results.map((r) => r.qualified_name));
+  const extra = new Map();
+  for (const r of callers.results) {
+    if (!r.is_test || seen.has(r.qualified_name)) continue;
+    const kept = extra.get(r.qualified_name);
+    if (!kept || (r.call_site ? r.call_site.line : r.line_start) < (kept.call_site ? kept.call_site.line : kept.line_start)) {
+      extra.set(r.qualified_name, r);
+    }
+  }
+  return { ...tests, results: [...tests.results, ...extra.values()], callers_omitted: callers.results_omitted || 0 };
+}
+
 function formatQuery(json, root, command, asked = "") {
   if (json.status === "ambiguous") {
     const name = asked.split("::").pop();
@@ -136,13 +153,13 @@ function formatQuery(json, root, command, asked = "") {
       guessed: r.target_resolution === "unresolved",
     }))
     .sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
-  const out = [`${target}: ${plural(rows.length, NOUNS[command])}`];
+  const omitted = json.results_omitted || 0;
+  const out = [`${target}: ${plural(rows.length, NOUNS[command])}${omitted ? ` shown, ${omitted} omitted` : ""}`];
   if (!rows.length) {
     out.push(
       "  none in the graph; calls across languages (GDScript to Rust) and through a variable are " +
         `not tracked: git grep -n "${bare}("`
     );
-    return out;
   }
   for (const r of rows) out.push(`  ${r.file}:${r.line}  ${r.text}`);
   const guessed = rows.filter((r) => r.guessed).length;
@@ -152,6 +169,13 @@ function formatQuery(json, root, command, asked = "") {
         `${bare}, so check each one.`
     );
     out.push(`  confirm with: git grep -n "${bare}("`);
+  }
+  if (omitted) out.push(`  ${omitted} more omitted by code-review-graph; see them all with: git grep -n "${bare}("`);
+  if (json.callers_omitted) {
+    out.push(
+      `  ${json.callers_omitted} callers omitted by code-review-graph, so tests among them are not listed: ` +
+        `git grep -n "${bare}("`
+    );
   }
   return out;
 }
@@ -255,9 +279,11 @@ function main(argv) {
   } else if (PATTERNS[command]) {
     if (!rest[0]) fail(`usage: cg ${command} <name | file::name>`);
     refresh();
-    let answer = json("query", PATTERNS[command], toTarget(rest[0], root));
+    let target = toTarget(rest[0], root);
+    let answer = json("query", PATTERNS[command], target);
     const sole = soleDefinition(answer, rest[0]);
-    if (sole) answer = json("query", PATTERNS[command], sole);
+    if (sole) answer = json("query", PATTERNS[command], (target = sole));
+    if (command === "tests") answer = mergeTests(answer, json("query", PATTERNS.callers, target));
     print(formatQuery(answer, root, command, rest[0]));
   } else if (command === "skeleton") {
     if (!rest[0]) fail("usage: cg skeleton <file>");
@@ -296,6 +322,7 @@ module.exports = {
   toTarget,
   buildLine,
   soleDefinition,
+  mergeTests,
   formatQuery,
   formatSkeleton,
   formatSearch,

@@ -179,6 +179,55 @@ test("callees, tests and an empty answer read the same way", () => {
   ]);
 });
 
+test("tests add the test functions among the callers, one line per test, matched by name marked", () => {
+  // tests_for keeps only calls resolved to this exact function; Engine.step in stella-rain/core is
+  // called through a variable everywhere, so it found no test while its callers held 95.
+  const tests = { status: "ok", target: `${ROOT}/src/engine.rs::Engine.step`, results: [fn("tests/engine.rs", "golden", 12, { test: true })] };
+  const callers = {
+    status: "ok",
+    target: `${ROOT}/src/engine.rs::Engine.step`,
+    results: [
+      fn("src/replay.rs", "verify_inner", 347, { call: 360 }),
+      fn("tests/engine.rs", "golden", 12, { call: 15, test: true }),
+      fn("tests/agents.rs", "play", 20, { call: 31, test: true, unresolved: true }),
+      fn("tests/agents.rs", "play", 20, { call: 25, test: true, unresolved: true }),
+    ],
+  };
+  const lines = cg.formatQuery(cg.mergeTests(tests, callers), ROOT, "tests");
+  assert.deepStrictEqual(lines.slice(0, 3), [
+    "src/engine.rs::Engine.step: 2 tests",
+    "  tests/agents.rs:25  play  [test] ?",
+    "  tests/engine.rs:12  golden  [test]",
+  ]);
+  assert.match(lines[3], /^\? = matched by name only \(1 of 2\)/);
+  // An answer that is not a list of tests (an ambiguous name, no such node) is passed on as it is.
+  const ambiguous = { status: "ambiguous", candidates: [] };
+  assert.strictEqual(cg.mergeTests(ambiguous, callers), ambiguous);
+  assert.deepStrictEqual(cg.mergeTests(tests, { status: "not_found" }).results, tests.results);
+});
+
+test("results code-review-graph omitted are reported, with a grep to see them all", () => {
+  // callers_of shows at most 100: Engine.step had 188 call sites, 88 of them omitted.
+  const callers = {
+    status: "ok",
+    target: `${ROOT}/src/engine.rs::Engine.step`,
+    results_omitted: 88,
+    results: [fn("src/replay.rs", "verify_inner", 347, { call: 360 })],
+  };
+  assert.deepStrictEqual(cg.formatQuery(callers, ROOT, "callers"), [
+    "src/engine.rs::Engine.step: 1 caller shown, 88 omitted",
+    "  src/replay.rs:360  verify_inner",
+    '  88 more omitted by code-review-graph; see them all with: git grep -n "step("',
+  ]);
+  // Tests among omitted callers are missing from the tests too.
+  const tests = { status: "ok", target: callers.target, results: [] };
+  assert.deepStrictEqual(cg.formatQuery(cg.mergeTests(tests, callers), ROOT, "tests"), [
+    "src/engine.rs::Engine.step: 0 tests",
+    '  none in the graph; calls across languages (GDScript to Rust) and through a variable are not tracked: git grep -n "step("',
+    '  88 callers omitted by code-review-graph, so tests among them are not listed: git grep -n "step("',
+  ]);
+});
+
 test("anything else code-review-graph says is passed on as its summary", () => {
   assert.deepStrictEqual(cg.formatQuery({ status: "not_found", summary: "No node matches 'zzz'." }, ROOT, "callers"), ["No node matches 'zzz'."]);
 });
