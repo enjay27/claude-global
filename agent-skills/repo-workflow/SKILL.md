@@ -16,12 +16,6 @@ procedures behind them. When to recommend a handoff from the context size is the
 
 - Locate the code first, then present an impact analysis: which files change, what logic changes,
   what does not, which gate applies, and whether this session can run that gate.
-- **Search with `git grep -nw <name>`**, then read the hits. `-w` also finds a function named in a
-  string (a Tauri `invoke("name")`) or a list (a command registration), which a search for
-  `name(` and the code graphs missed. For a common name (`new`, `parse`, `run`), narrow by path
-  (`-- crates/core`) and read which definition each hit calls.
-- **Impact of a change or a PR**: take the functions it changes (`git diff -U0 <base>`), then
-  `git grep -nw <name> -- ':!<changed file>'` for each, and read the hits.
 - **Read another repository at its `origin/main`**, fetched first (`git fetch origin main`),
   never from a local or older clone: a stale clone gave the 2026-10-11 audit two false findings.
 - **A new module, crate or dependency is decided with Kade first**: bring the options, their

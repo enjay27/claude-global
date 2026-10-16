@@ -43,7 +43,7 @@ apply in Claude Code (terminal and cloud) and Cowork sessions. `agent-skills/` i
 them a second time); `agent-sync` copies it to Antigravity's skills folders from the release on.
 
 `repo-workflow` was `kade-workflow` until 2026-10-09. The code graph skill (`graft-kade` until
-2026-10-09) and its bundle were removed on 2026-10-16: `git grep` found more (`repo-workflow`). The
+2026-10-09) and its bundle were removed on 2026-10-16. The
 dated records in `docs/skills/` were written in `claude-skills` and keep its paths: there,
 `skills/` is `agent-skills/` here, `scripts/` is `scripts/skills/`, `docs/` is `docs/skills/`.
 
