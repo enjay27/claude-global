@@ -37,10 +37,10 @@ For any agent, anywhere, in Kade's repositories (`stella-rain`, `star-resonance`
 - Branches: `claude/<task>` for Claude, `agent/<task>` for other agents. Local sessions follow the
   repository's flow; cloud sessions branch from an up-to-date `main`, push, open a PR, then turn on
   GitHub auto-merge unless it has its own auto-merge workflow. Never merge by hand; never commit to `main`.
+- A PR that auto-merge leaves to Kade (workflows, ADRs, agent rules) is opened as a draft; he merges it.
 - One task per PR; start the next only after the merge. Never wait with `sleep` loops
   (*Claude only:* wait with the PR event subscription and a scheduled check-in).
-- Never skip, disable or weaken a test or check to get green. A failure that is not this PR's
-  (red on `main` too) is said on the PR.
+- Never skip, disable or weaken a test or check to get green; a failure red on `main` too goes on the PR.
 
 ## Secrets and public repositories
 
@@ -48,8 +48,8 @@ For any agent, anywhere, in Kade's repositories (`stella-rain`, `star-resonance`
 - In a public repository everything is public, issues and Actions logs included: no internal
   URLs, personal data or private planning. Those belong in a private repository.
 - GitHub workflows: `permissions: {}` at the top and per-job grants; `actions/checkout` with
-  `persist-credentials: false`; actions pinned to a major version, except
-  `dtolnay/rust-toolchain@stable` (no version tags: its ref names the toolchain).
+  `persist-credentials: false`; actions pinned to a major version, except `dtolnay/rust-toolchain@stable`.
+- A PR whose files are all `*.md` runs only static checks; auto-merge requires checks that always report.
 
 ## Machines and the agents' own files
 
