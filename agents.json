@@ -1,9 +1,0 @@
-{
-  "agents": [
-    {
-      "name": "Antigravity",
-      "rules": { "path": "~/.gemini/AGENTS.md", "text": "@[Kade's global rules](~/.claude/AGENTS.md)\n" },
-      "skills": ["~/.gemini/config/skills", "~/.gemini/antigravity-cli/skills"]
-    }
-  ]
-}
