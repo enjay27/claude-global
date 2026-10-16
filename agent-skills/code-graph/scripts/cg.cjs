@@ -146,14 +146,21 @@ function formatQuery(json, root, command, asked = "") {
 
   const target = rel(json.target, root);
   const bare = target.split("::").pop().split(".").pop();
+  // A callee's call_site is in the target's file, so callees are shown there with the callee's own
+  // definition after the name; a callee outside the graph (std, a crate) has no file_path at all.
+  const callees = command === "callees";
   const rows = json.results
-    .map((r) => ({
-      file: rel(r.file_path, root),
-      line: r.call_site ? r.call_site.line : r.line_start,
-      text: label(r) + (r.is_test ? "  [test]" : "") + (r.target_resolution === "unresolved" ? " ?" : ""),
-      guessed: r.target_resolution === "unresolved",
-    }))
-    .sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
+    .map((r) => {
+      const site = callees && r.call_site && r.call_site.file;
+      const def = site && r.file_path ? `  (${rel(r.file_path, root)}:${r.line_start})` : "";
+      return {
+        file: rel(site ? r.call_site.file : r.file_path || json.target.split("::")[0], root),
+        line: (r.call_site ? r.call_site.line : r.line_start) ?? "?",
+        text: label(r) + (r.is_test ? "  [test]" : "") + (r.target_resolution === "unresolved" ? " ?" : "") + def,
+        guessed: r.target_resolution === "unresolved",
+      };
+    })
+    .sort((a, b) => a.file.localeCompare(b.file) || (+a.line || 0) - (+b.line || 0));
   const omitted = json.results_omitted || 0;
   const out = [`${target}: ${plural(rows.length, NOUNS[command])}${omitted ? ` shown, ${omitted} omitted` : ""}`];
   if (!rows.length) {
@@ -164,7 +171,12 @@ function formatQuery(json, root, command, asked = "") {
   }
   for (const r of rows) out.push(`  ${r.file}:${r.line}  ${r.text}`);
   const guessed = rows.filter((r) => r.guessed).length;
-  if (guessed) {
+  if (guessed && callees) {
+    out.push(
+      `? = not found in the graph (${guessed} of ${rows.length}): outside the repository (std, a crate) ` +
+        "or called through a trait or variable."
+    );
+  } else if (guessed) {
     out.push(
       `? = matched by name only (${guessed} of ${rows.length}): there may be another function named ` +
         `${bare}, so check each one.`
