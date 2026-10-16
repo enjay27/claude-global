@@ -184,6 +184,22 @@ test("no tracked file outside the dated plans names this repository or the skill
   assert.deepStrictEqual(found, []);
 });
 
+// The code graph skill and its bundle were removed on 2026-10-16: on resonance-stream git grep
+// found every caller and every dependant of three merged PRs, the graph 39% and 4 of 12.
+test("no tracked file outside the dated plans names the removed code graph skill", () => {
+  const old = /code-(graph|review-graph)\b|\bcg\.cjs\b/;
+  const found = [];
+  for (const f of tracked) {
+    if (HISTORY.has(f)) continue;
+    const full = path.join(ROOT, f);
+    if (!fs.existsSync(full) || !fs.statSync(full).isFile()) continue;
+    fs.readFileSync(full, "utf8").split("\n").forEach((line, i) => {
+      if (old.test(line)) found.push(`${f}:${i + 1}`);
+    });
+  }
+  assert.deepStrictEqual(found, []);
+});
+
 // Step 4: the skills live in agent-skills/<name>/SKILL.md. Claude Code and Antigravity both need
 // front matter with a description; Claude's name must match the folder.
 test("every skill in agent-skills/ has front matter naming its folder and a description", () => {
@@ -194,7 +210,7 @@ test("every skill in agent-skills/ has front matter naming its folder and a desc
     const text = fs.readFileSync(path.join(dir, name, "SKILL.md"), "utf8");
     const front = /^---\n([^]*?)\n---\n/.exec(text);
     assert.ok(front, `${name}: SKILL.md starts with front matter between --- lines`);
-    // YAML values may be quoted (code-graph's are).
+    // YAML values may be quoted.
     assert.match(front[1], new RegExp(`^name: ("?)${name}\\1$`, "m"), `${name}: name must be the folder's`);
     assert.match(front[1], /^description: "?[^\s"]/m, `${name}: description must not be empty`);
   }
