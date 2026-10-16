@@ -13,8 +13,10 @@
 // A release is a tag vYYYY.MM.DD or vYYYY.MM.DD.N; the version in use is line 1 of the rules,
 // "Global rules: <tag>" (scripts/release.cjs keeps them equal). It never moves backwards.
 // The rules are AGENTS.md from the AGENTS.md move on (docs/agent-migration-plan.md, step 7), with
-// CLAUDE.md the one line @AGENTS.md; CLAUDE.md before it. Every run first adds /AGENTS.md to a
-// sparse checkout set up before the move, so the move's release checks it out.
+// CLAUDE.md the one line @AGENTS.md; CLAUDE.md before it. Every run first adds the paths that later
+// releases deploy (/AGENTS.md, step 7; /agent-skills/ and /agents.json, step 9) to a sparse
+// checkout set up before them, so a release that has them checks them out.
+// Every run then calls agent-sync, which keeps the other agents' copies of the rules and skills.
 // It never fails a session: every path exits 0, with at most one line when something went wrong.
 //
 // Environment: CLAUDE_GLOBAL_DIR overrides the checkout (default: the folder above this file).
@@ -99,8 +101,11 @@ function currentVersion() {
   return f && readStamp(fs.readFileSync(path.join(dir(), f), "utf8"));
 }
 
-// A sparse checkout set up before the AGENTS.md move lists /CLAUDE.md but not /AGENTS.md; add it,
-// once. A checkout that is not sparse is left alone.
+// Paths deployed since the setup scripts' first sparse list.
+const ADDED = ["/AGENTS.md", "/agent-skills/", "/agents.json"];
+
+// A sparse checkout set up before a path in ADDED was deployed does not list it; add it, once.
+// A checkout that is not sparse is left alone.
 function ensureSparse() {
   let sparse;
   try {
@@ -109,8 +114,19 @@ function ensureSparse() {
     sparse = false; // unset
   }
   if (!sparse) return;
-  if (!git("sparse-checkout", "list").split("\n").includes("/AGENTS.md")) {
-    git("sparse-checkout", "add", "/AGENTS.md");
+  const listed = git("sparse-checkout", "list").split("\n");
+  const missing = ADDED.filter((p) => !listed.includes(p));
+  if (missing.length) git("sparse-checkout", "add", ...missing);
+}
+
+// The lines agent-sync prints. A release without agents.json has nothing to sync. Required here,
+// after any update, so the agent-sync of the release just checked out is the one that runs.
+function syncAgents() {
+  try {
+    if (!fs.existsSync(path.join(dir(), "agents.json"))) return [];
+    return require("./agent-sync.cjs").sync(dir(), path.dirname(dir()));
+  } catch (e) {
+    return [`agent-sync: ${e.message.split("\n")[0]}`];
   }
 }
 
@@ -161,8 +177,8 @@ function hook() {
     moved = update();
   } catch {
     console.log(`Global rules: could not check for updates; using ${currentVersion() || "(none)"}.`);
-    return;
   }
+  for (const line of syncAgents()) console.log(line);
   if (!moved) return;
   const text = fs.readFileSync(path.join(dir(), stampedFile() || "CLAUDE.md"), "utf8");
   console.log(
@@ -179,6 +195,7 @@ function install() {
   } catch (e) {
     console.log(`global-sync: could not check for updates (${e.message.split("\n")[0]}).`);
   }
+  for (const line of syncAgents()) console.log(line);
   if (!moved) {
     writeExclude();
     const problem = installSettings();

@@ -80,7 +80,9 @@ function git(cwd, ...args) {
 // A release in `agents` is laid out as after the AGENTS.md move: the rules and their stamp in
 // AGENTS.md, CLAUDE.md the one line @AGENTS.md. ~/.claude's sparse checkout is the list every
 // machine set up before that move has, without /AGENTS.md.
-function world({ releases = ["v2026.01.01", "v2026.01.02"], at = "v2026.01.01", agents = [] } = {}) {
+// A release in `skills` also holds this repository's agents.json and one skill in agent-skills/
+// (step 9), and `gemini` creates ~/.gemini/config, where Antigravity's skills copy goes.
+function world({ releases = ["v2026.01.01", "v2026.01.02"], at = "v2026.01.01", agents = [], skills = [], gemini = false } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gsync-"));
   const work = path.join(root, "work");
   const origin = path.join(root, "origin.git");
@@ -101,6 +103,11 @@ function world({ releases = ["v2026.01.01", "v2026.01.02"], at = "v2026.01.01", 
     } else {
       fs.writeFileSync(path.join(work, "CLAUDE.md"), rules);
     }
+    if (skills.includes(tag)) {
+      fs.copyFileSync(path.join(__dirname, "..", "agents.json"), path.join(work, "agents.json"));
+      fs.mkdirSync(path.join(work, "agent-skills", "alpha"), { recursive: true });
+      fs.writeFileSync(path.join(work, "agent-skills", "alpha", "SKILL.md"), `Alpha of ${tag}.\n`);
+    }
     git(work, "add", "-A");
     git(work, "commit", "-q", "-m", tag);
     git(work, "tag", tag);
@@ -119,6 +126,7 @@ function world({ releases = ["v2026.01.01", "v2026.01.02"], at = "v2026.01.01", 
     git(c, "fetch", "-q", "--depth", "1", "origin", "tag", at);
     git(c, "checkout", "-q", "--detach", at);
   }
+  if (gemini) fs.mkdirSync(path.join(home, ".gemini", "config"), { recursive: true });
   return { root, work, origin, home, c };
 }
 
@@ -232,6 +240,56 @@ test("a checkout that is not sparse is left that way", () => {
   git(w.c, "sparse-checkout", "disable");
   assert.strictEqual(run(w), "");
   assert.notStrictEqual(git(w.c, "config", "--default", "false", "--get", "core.sparseCheckout").trim(), "true");
+});
+
+// ---- Antigravity's copies (docs/agent-migration-plan.md, step 9) ---------------------------
+
+const geminiSkill = (w) => path.join(w.home, ".gemini", "config", "skills", "alpha", "SKILL.md");
+// The test checkouts follow core.autocrlf (CRLF on Windows); ~/.claude has .gitattributes eol=lf.
+const readLf = (file) => fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n");
+
+test("adds /agent-skills/ and /agents.json to the sparse checkout once", () => {
+  const w = world({ at: "v2026.01.02" });
+  run(w);
+  run(w);
+  for (const p of ["/agent-skills/", "/agents.json"]) {
+    assert.deepStrictEqual(sparse(w).filter((s) => s === p), [p]);
+  }
+});
+
+test("a machine the previous hook moved to the step 9 release gets the copies at its next session", () => {
+  // The previous hook checks the release out with the old sparse list and never syncs the agents.
+  const w = world({ skills: ["v2026.01.02"], at: "v2026.01.02", gemini: true });
+  assert.ok(!fs.existsSync(path.join(w.c, "agents.json")), "the state the previous hook leaves");
+  assert.strictEqual(run(w), "", "up to date, and the copies are made quietly");
+  assert.strictEqual(readLf(geminiSkill(w)), "Alpha of v2026.01.02.\n");
+  assert.strictEqual(
+    fs.readFileSync(path.join(w.home, ".gemini", "AGENTS.md"), "utf8"),
+    "@[Kade's global rules](~/.claude/AGENTS.md)\n"
+  );
+  assert.ok(!/agent/.test(git(w.c, "status", "--short")), "the new paths are tracked, not stray");
+  assert.ok(git(w.c, "ls-files").includes("agent-skills/alpha/SKILL.md"));
+});
+
+test("moving to a newer release updates Antigravity's copies in the same session", () => {
+  const w = world({ releases: ["v2026.01.01", "v2026.01.02", "v2026.01.03"], skills: ["v2026.01.02", "v2026.01.03"], at: "v2026.01.02", gemini: true });
+  git(w.c, "sparse-checkout", "add", "/agent-skills/", "/agents.json");
+  assert.match(run(w), /Global rules updated v2026\.01\.02 -> v2026\.01\.03/);
+  assert.strictEqual(readLf(geminiSkill(w)), "Alpha of v2026.01.03.\n");
+});
+
+test("unreachable origin: Antigravity's copies are still kept", () => {
+  const w = world({ skills: ["v2026.01.02"], at: "v2026.01.02", gemini: true });
+  git(w.c, "remote", "set-url", "origin", path.join(w.root, "missing.git"));
+  const out = run(w);
+  assert.strictEqual(out.trim(), "Global rules: could not check for updates; using v2026.01.02.");
+  assert.ok(fs.existsSync(geminiSkill(w)));
+});
+
+test("--install also makes Antigravity's copies", () => {
+  const w = world({ skills: ["v2026.01.02"], gemini: true });
+  run(w, ["--install"]);
+  assert.ok(fs.existsSync(geminiSkill(w)));
 });
 
 test("the stamp in AGENTS.md wins over CLAUDE.md's", () => {

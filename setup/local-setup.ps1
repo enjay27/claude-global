@@ -61,7 +61,7 @@ git init -q
 if ($LASTEXITCODE) { Undo 'git init failed' }
 git remote add origin $remote
 if ($LASTEXITCODE) { Undo 'git remote add failed' }
-git sparse-checkout set --no-cone /AGENTS.md /CLAUDE.md /rules/ /hooks/ /settings.global.json /.gitignore /.gitattributes
+git sparse-checkout set --no-cone /AGENTS.md /CLAUDE.md /rules/ /hooks/ /settings.global.json /agents.json /agent-skills/ /.gitignore /.gitattributes
 if ($LASTEXITCODE) { Undo 'git sparse-checkout failed' }
 git fetch -q --depth 1 origin tag $tag
 if ($LASTEXITCODE) { Undo "could not fetch $tag" }
@@ -69,7 +69,7 @@ if ($LASTEXITCODE) { Undo "could not fetch $tag" }
 # A sparse checkout overwrites untracked files at its paths without failing (git 2.43), so look
 # for files of yours in the way before checking out. AGENTS.md counts whatever this tag holds:
 # global-sync --install then moves on to the latest release, which has it.
-$inWay = @(git ls-tree -r --name-only $tag -- AGENTS.md CLAUDE.md rules hooks settings.global.json .gitignore .gitattributes) + 'AGENTS.md' |
+$inWay = @(git ls-tree -r --name-only $tag -- AGENTS.md CLAUDE.md rules hooks settings.global.json agents.json agent-skills .gitignore .gitattributes) + 'AGENTS.md' |
   Sort-Object -Unique | Where-Object { Test-Path -LiteralPath $_ }
 if ($inWay) {
   $inWay | ForEach-Object { [Console]::Error.WriteLine("  $_") }

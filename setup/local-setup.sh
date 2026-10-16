@@ -37,13 +37,13 @@ undo() {
 }
 
 git init -q && git remote add origin "$remote" \
-  && git sparse-checkout set --no-cone /AGENTS.md /CLAUDE.md /rules/ /hooks/ /settings.global.json /.gitignore /.gitattributes \
+  && git sparse-checkout set --no-cone /AGENTS.md /CLAUDE.md /rules/ /hooks/ /settings.global.json /agents.json /agent-skills/ /.gitignore /.gitattributes \
   && git fetch -q --depth 1 origin tag "$tag" \
   || undo "could not fetch $tag"
 # A sparse checkout overwrites untracked files at its paths without failing (git 2.43), so look
 # for files of yours in the way before checking out. AGENTS.md counts whatever this tag holds:
 # global-sync --install then moves on to the latest release, which has it.
-in_way=$({ git ls-tree -r --name-only "$tag" -- AGENTS.md CLAUDE.md rules hooks settings.global.json .gitignore .gitattributes; echo AGENTS.md; } \
+in_way=$({ git ls-tree -r --name-only "$tag" -- AGENTS.md CLAUDE.md rules hooks settings.global.json agents.json agent-skills .gitignore .gitattributes; echo AGENTS.md; } \
   | sort -u | while IFS= read -r f; do [ -e "$f" ] && echo "  $f"; done)
 [ -z "$in_way" ] || { echo "$in_way" >&2; undo "these files of yours are in the way of the checkout"; }
 git checkout -q --detach "$tag" || undo "the checkout failed"
