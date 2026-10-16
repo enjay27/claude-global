@@ -129,6 +129,9 @@ Each step is one PR, merged before the next.
 9. **`agents.json` with Antigravity:** the include line, the skills copied to both folders, the
    hook. The hook is tested first in the product Kade uses (the IDE's did not run in step 3).
    The setup scripts stop before overwriting a file of Kade's, as they do today.
+   Decided 2026-10-16 (#48): no Antigravity hook yet; Claude's `global-sync` calls
+   `hooks/agent-sync.cjs` on every run, which keeps the include and the copies. Antigravity's own
+   hook waits for a test on the PC that shows one running.
 10. **`context-guard` for Antigravity** (`PreInvocation`, `injectSteps`), only if a transcript
     holds token usage. The IDE's does not (step 3); the CLI's is unchecked.
 11. **Each working repository, one PR each:** `git mv` to `AGENTS.md`, the shim, the
