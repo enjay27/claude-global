@@ -289,6 +289,44 @@ test("callees, tests and an empty answer read the same way", () => {
   ]);
 });
 
+test("callees are listed at their call sites, one outside the graph marked rather than dropped", () => {
+  // callees_of for Engine.step in stella-rain/core: `clear` (std's Vec::clear) is not in the graph,
+  // so it has no file_path or line_start; call_site is in the target's file, not the callee's.
+  const json = {
+    status: "ok",
+    target: `${ROOT}/src/engine.rs::Engine.step`,
+    results: [
+      {
+        kind: "Function",
+        name: "clear",
+        qualified_name: "clear",
+        target_resolution: "unresolved",
+        call_site: { line: 140, file: `${ROOT}/src/engine.rs` },
+      },
+      {
+        id: 397,
+        kind: "Function",
+        name: "step",
+        qualified_name: `${ROOT}/src/rules_v0/mod.rs::step`,
+        file_path: `${ROOT}/src/rules_v0/mod.rs`,
+        line_start: 205,
+        line_end: 241,
+        language: "rust",
+        parent_name: null,
+        is_test: false,
+        call_site: { line: 143, file: `${ROOT}/src/engine.rs` },
+      },
+    ],
+    results_omitted: 0,
+  };
+  assert.deepStrictEqual(cg.formatQuery(json, ROOT, "callees"), [
+    "src/engine.rs::Engine.step: 2 callees",
+    "  src/engine.rs:140  clear ?",
+    "  src/engine.rs:143  step  (src/rules_v0/mod.rs:205)",
+    "? = not found in the graph (1 of 2): outside the repository (std, a crate) or called through a trait or variable.",
+  ]);
+});
+
 test("tests add the test functions among the callers, one line per test, matched by name marked", () => {
   // tests_for keeps only calls resolved to this exact function; Engine.step in stella-rain/core is
   // called through a variable everywhere, so it found no test while its callers held 95.
