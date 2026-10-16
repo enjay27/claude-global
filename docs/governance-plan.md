@@ -205,6 +205,16 @@ Built from the audit's findings; each becomes a test fixture before its check is
 
 Adding, removing or changing a control is a PR in `kade-agent/code-quality-assurance`.
 
+### 7a. Rules numbered after the audit
+
+The audit numbered the global rules G1 to G22. A rule added later takes the next number here;
+the controls that check it cite it in `kade-agent/code-quality-assurance` `controls.json`.
+
+| Rule | Global rule (`AGENTS.md`) | Since | Controls |
+|---|---|---|---|
+| G23 | A PR that auto-merge leaves to Kade (workflows, ADRs, agent rules) is opened as a draft; he merges it. | v2026.10.16.2 (#73) | MG-04, MG-05 |
+| G24 | A PR whose files are all `*.md` runs only static checks; auto-merge requires checks that always report. | v2026.10.16.2 (#73) | WF-07, WF-08 |
+
 ## 8. The Routines
 
 | | Daily results | Drift |
