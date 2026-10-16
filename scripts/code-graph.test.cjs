@@ -6,7 +6,10 @@
 
 const test = require("node:test");
 const assert = require("node:assert");
+const fs = require("fs");
+const os = require("os");
 const path = require("path");
+const { spawnSync } = require("child_process");
 const cg = require("../agent-skills/code-graph/scripts/cg.cjs");
 
 const ROOT = "C:/work/game";
@@ -43,6 +46,40 @@ test("the pinned version gets its own virtual environment, with the platform's s
   assert.strictEqual(venv, path.join("/c", `venv-${cg.VERSION}`));
   assert.strictEqual(cg.venvExe(venv, "win32"), path.join(venv, "Scripts", "code-review-graph.exe"));
   assert.strictEqual(cg.venvExe(venv, "darwin"), path.join(venv, "bin", "code-review-graph"));
+});
+
+test("the tool runs through the virtual environment's Python, with the extra extensions as arguments", () => {
+  const [cmd, args] = cg.toolCommand("/c/venv", "linux", ["query", "callers_of", "f"]);
+  assert.strictEqual(cmd, path.join("/c/venv", "bin", "python"));
+  assert.strictEqual(args[0], "-c");
+  assert.deepStrictEqual(args.slice(2), ["query", "callers_of", "f"]);
+  assert.strictEqual(cg.toolCommand("/c/venv", "win32", [])[0], path.join("/c/venv", "Scripts", "python.exe"));
+  assert.deepStrictEqual(cg.EXTRA_EXTENSIONS, { ".cjs": "javascript" });
+});
+
+// code-review-graph 2.3.9 maps .js and .mjs but not .cjs. The bootstrap adds it to the parser's
+// map before the CLI starts, and leaves a mapping the tool already has alone.
+test("the bootstrap maps .cjs before the CLI runs and passes the arguments on", (t) => {
+  const python = cg.findPython();
+  if (!python) return t.skip("no Python 3.10 or newer on PATH");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cg-shim-"));
+  const pkg = path.join(dir, "code_review_graph");
+  fs.mkdirSync(pkg);
+  fs.writeFileSync(path.join(pkg, "__init__.py"), "");
+  fs.writeFileSync(path.join(pkg, "parser.py"), 'EXTENSION_TO_LANGUAGE = {".js": "javascript", ".mjs": "javascript"}\n');
+  fs.writeFileSync(
+    path.join(pkg, "cli.py"),
+    "import json, sys\nimport code_review_graph.parser as p\n" +
+      "def main():\n    print(json.dumps({'map': p.EXTENSION_TO_LANGUAGE, 'argv': sys.argv}))\n    return 3\n"
+  );
+  const [, args] = cg.toolCommand("unused", process.platform, ["build", "--repo", "x"]);
+  const r = spawnSync(python, args, { encoding: "utf8", env: { ...process.env, PYTHONPATH: dir } });
+  fs.rmSync(dir, { recursive: true, force: true });
+  assert.strictEqual(r.status, 3, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.strictEqual(out.map[".cjs"], "javascript");
+  assert.strictEqual(out.map[".mjs"], "javascript");
+  assert.deepStrictEqual(out.argv, ["code-review-graph", "build", "--repo", "x"]);
 });
 
 test("a target is a bare name, or a repository-relative path and a name", () => {
@@ -115,6 +152,12 @@ test("an ambiguous name lists its definitions and how to pick one", () => {
     "  src/engine.rs::Engine.step  (line 89)",
     "  src/spike.rs::Spike.step  (line 57)",
   ]);
+  // Several exact definitions: the caller has to pick, so there is nothing to ask again with.
+  assert.strictEqual(cg.soleDefinition(json, "step"), null);
+  // One exact definition among near names: ask again with it, without bothering the reader.
+  const one = { status: "ambiguous", candidates: [fn("hooks/sync.cjs", "mergeSettings", 59), fn("t.cjs", "mergeSettings_keeps_keys", 9)] };
+  assert.strictEqual(cg.soleDefinition(one, "mergeSettings"), `${ROOT}/hooks/sync.cjs::mergeSettings`);
+  assert.strictEqual(cg.soleDefinition({ status: "ok", results: [] }, "f"), null);
   // With no exact match, every candidate is shown.
   const near = { status: "ambiguous", candidates: [fn("a.rs", "parse", 4), fn("b.rs", "choice_index", 9)] };
   assert.deepStrictEqual(cg.formatQuery(near, ROOT, "callers", "choose"), [

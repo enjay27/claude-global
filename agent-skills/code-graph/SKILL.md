@@ -27,6 +27,8 @@ cg() { node "<skill dir>/scripts/cg.cjs" "$@"; }
 - The graph of each repository lives in `~/.cache/code-review-graph/graphs/<repo path>`, so
   nothing is written into the repository and the working tree stays clean.
 - Every query updates the graph against the working tree first (about half a second).
+- `cg` also indexes `.cjs` as JavaScript, which code-review-graph 2.3.9 skips
+  (`EXTRA_EXTENSIONS` in `scripts/cg.cjs`).
 
 ## Start of a task
 
@@ -93,5 +95,7 @@ separate step with its own plan. Never remove or commit it unasked.
 - The version is `VERSION` at the top of `scripts/cg.cjs`. To update, change it in a PR to
   `kade-agent/agent-config` with the wrapper tests (`node --test`) and a run on a real
   repository; the next call installs the new version beside the old one.
-- An old `~/.cache/code-review-graph/venv-<version>` folder can be deleted.
+- When a release maps an extension in `EXTRA_EXTENSIONS` itself, drop that entry in the same PR.
+- An old `~/.cache/code-review-graph/venv-<version>` folder can be deleted. A graph built before
+  an extension was added misses those files until rebuilt: delete its folder under `graphs/`.
 - To check the version in use: `cg version`.

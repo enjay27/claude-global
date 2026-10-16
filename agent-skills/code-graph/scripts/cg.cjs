@@ -23,6 +23,18 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 
 const VERSION = "2.3.9";
+// Extensions code-review-graph does not map yet, added to its parser's map before the CLI runs.
+// 2.3.9 maps .js and .mjs but not .cjs; drop the entry once a release maps it.
+const EXTRA_EXTENSIONS = { ".cjs": "javascript" };
+const BOOTSTRAP = [
+  "import json, sys",
+  "import code_review_graph.parser as p",
+  `for ext, lang in json.loads(${JSON.stringify(JSON.stringify(EXTRA_EXTENSIONS))}).items():`,
+  "    p.EXTENSION_TO_LANGUAGE.setdefault(ext, lang)",
+  "from code_review_graph.cli import main",
+  'sys.argv = ["code-review-graph"] + sys.argv[1:]',
+  "sys.exit(main())",
+].join("\n");
 const NOUNS = { callers: "caller", callees: "callee", tests: "test" };
 const PATTERNS = { callers: "callers_of", callees: "callees_of", tests: "tests_for" };
 
@@ -44,6 +56,15 @@ function venvExe(venv, platform) {
   return platform === "win32"
     ? path.join(venv, "Scripts", "code-review-graph.exe")
     : path.join(venv, "bin", "code-review-graph");
+}
+
+function venvPython(venv, platform) {
+  return platform === "win32" ? path.join(venv, "Scripts", "python.exe") : path.join(venv, "bin", "python");
+}
+
+// [command, args] that run code-review-graph with EXTRA_EXTENSIONS mapped.
+function toolCommand(venv, platform, args) {
+  return [venvPython(venv, platform), ["-c", BOOTSTRAP, ...args]];
 }
 
 function slash(p) {
@@ -79,12 +100,24 @@ function plural(n, noun) {
   return `${n} ${noun}${n === 1 ? "" : "s"}`;
 }
 
-// `asked` is the target as given: code-review-graph's candidates for an ambiguous name also hold
-// near names, so only the exact ones count as its definitions.
+// code-review-graph's candidates for an ambiguous name also hold near names, so only the exact
+// ones count as its definitions. `asked` is the target as given.
+function exactCandidates(json, asked) {
+  const name = asked.split("::").pop().split(".").pop();
+  return (json.candidates || []).filter((c) => c.name === name);
+}
+
+// The qualified name to ask again with when an "ambiguous" answer has one exact definition.
+function soleDefinition(json, asked) {
+  if (json.status !== "ambiguous") return null;
+  const exact = exactCandidates(json, asked);
+  return exact.length === 1 ? exact[0].qualified_name : null;
+}
+
 function formatQuery(json, root, command, asked = "") {
   if (json.status === "ambiguous") {
     const name = asked.split("::").pop();
-    const exact = json.candidates.filter((c) => c.name === name.split(".").pop());
+    const exact = exactCandidates(json, asked);
     const rows = (exact.length ? exact : json.candidates)
       .map((c) => [rel(c.qualified_name, root), c.line_start])
       .sort((a, b) => a[0].localeCompare(b[0]));
@@ -169,20 +202,19 @@ function findPython() {
 function ensureTool(cache) {
   const venv = venvDir(cache);
   const exe = venvExe(venv, process.platform);
-  if (fs.existsSync(exe)) return exe;
+  if (fs.existsSync(exe)) return venv;
   const python = findPython();
   if (!python) fail("code-review-graph needs Python 3.10 or newer, and none was found on PATH.");
   console.error(`cg: installing code-review-graph ${VERSION} into ${venv} (first use, about a minute)`);
   fs.mkdirSync(cache, { recursive: true });
   let r = run(python, ["-m", "venv", venv]);
   if (r.status !== 0) fail(`creating the virtual environment failed:\n${r.stderr}`);
-  const py = process.platform === "win32" ? path.join(venv, "Scripts", "python.exe") : path.join(venv, "bin", "python");
-  r = run(py, ["-m", "pip", "install", "--disable-pip-version-check", "-q", `code-review-graph==${VERSION}`]);
+  r = run(venvPython(venv, process.platform),["-m", "pip", "install", "--disable-pip-version-check", "-q", `code-review-graph==${VERSION}`]);
   if (r.status !== 0 || !fs.existsSync(exe)) {
     fs.rmSync(venv, { recursive: true, force: true });
     fail(`installing code-review-graph ${VERSION} failed:\n${r.stderr}`);
   }
-  return exe;
+  return venv;
 }
 
 function main(argv) {
@@ -195,10 +227,10 @@ function main(argv) {
   if (top.status !== 0) fail("not in a git repository");
   const root = top.stdout.trim();
   const cache = cacheRoot(process.env, os.homedir());
-  const exe = ensureTool(cache);
+  const venv = ensureTool(cache);
   const data = dataDir(root, cache);
   const env = { ...process.env, CRG_DATA_DIR: data };
-  const tool = (...args) => run(exe, args, { cwd: root, env });
+  const tool = (...args) => run(...toolCommand(venv, process.platform, args), { cwd: root, env });
   const json = (...args) => {
     const r = tool(...args);
     try {
@@ -223,7 +255,10 @@ function main(argv) {
   } else if (PATTERNS[command]) {
     if (!rest[0]) fail(`usage: cg ${command} <name | file::name>`);
     refresh();
-    print(formatQuery(json("query", PATTERNS[command], toTarget(rest[0], root)), root, command, rest[0]));
+    let answer = json("query", PATTERNS[command], toTarget(rest[0], root));
+    const sole = soleDefinition(answer, rest[0]);
+    if (sole) answer = json("query", PATTERNS[command], sole);
+    print(formatQuery(answer, root, command, rest[0]));
   } else if (command === "skeleton") {
     if (!rest[0]) fail("usage: cg skeleton <file>");
     refresh();
@@ -250,6 +285,9 @@ if (require.main === module) main(process.argv.slice(2));
 
 module.exports = {
   VERSION,
+  EXTRA_EXTENSIONS,
+  findPython,
+  toolCommand,
   cacheRoot,
   dataDir,
   venvDir,
@@ -257,6 +295,7 @@ module.exports = {
   rel,
   toTarget,
   buildLine,
+  soleDefinition,
   formatQuery,
   formatSkeleton,
   formatSearch,
