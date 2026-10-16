@@ -50,11 +50,27 @@ Fixtures in temporary folders and in `~/.gemini`, each holding a canary word; al
 | IDE: a skill in `~/.gemini/config/skills/` | **Pass.** It loaded and was opened as a skill file |
 | IDE: hooks | **Did not run, three tries.** `SessionStart` (not in the IDE's docs), then `PreInvocation` with an `ephemeralMessage`, then the same with `"enabled": true` in both `~/.gemini/config/hooks.json` and the workspace's `.agents/hooks.json`, each script logging before it reads stdin: no log, no message. IDE 1.107.0 starts no hook from either file; whether Customizations → Hooks lists them was not checked |
 | IDE: token usage in `transcript.jsonl` | **None.** No token or usage field in `transcript.jsonl` or `transcript_full.jsonl` |
-| `agy` CLI | **NOT VERIFIED:** not installed on this PC |
+| `agy` CLI | Not installed then; checked on 2026-10-16, below |
 
 Found on the way: with nothing to answer from, the IDE agent ran about 30 shell commands without
 asking (all reads): it listed the home folder and searched other tools' files, Claude Code's
 session transcript in `~/.claude/projects/` among them (section 6).
+
+### Step 3, the CLI (2026-10-16, Kade's PC: Antigravity CLI 1.3.6, model `gemini-4-argon-medium`)
+
+Kade's own four sessions, read for field names and numbers only; then a fixture workspace in a
+temporary folder (`.agents/hooks.json` and a Node script), removed after. Two `agy -p` runs, no tools.
+
+| Check | Result |
+|---|---|
+| CLI: token usage in the transcript | **Yes.** Every `PLANNER_RESPONSE` line of `transcript.jsonl` and `transcript_full.jsonl` has `input_tokens`, `cache_read_tokens` and `output_tokens`; `input_tokens + cache_read_tokens` is the context of that model call (13,724 cold; 2,269 + 11,677 on the next call) |
+| CLI: a `PreInvocation` hook in the workspace's `.agents/hooks.json` | **Pass.** The log says `loaded 1 named hooks from 1 hooks.json file(s)`; the script logged before reading stdin; its `injectSteps` `ephemeralMessage` canary was the reply. No `"enabled"` needed |
+| CLI: what the hook gets | stdin keys `artifactDirectoryPath`, `conversationId`, `initialNumSteps`, `invocationNum`, `modelName`, `transcriptPath`, `workspacePaths`. `transcriptPath` is `transcript_full.jsonl` under `~/.gemini/antigravity-cli/brain/<id>/.system_generated/logs/`, with forward slashes; `invocationNum` starts at 0 on every turn |
+| CLI: the hook reading usage | **Pass.** On the second turn (`--conversation`) the hook read 13,470 from the previous call. The first call of a conversation has nothing to read |
+| CLI: `~/.gemini/config/hooks.json`, `SessionStart` | Not tried. The log shows two hook loads per run (`0 from 0`, then `1 from 1`): which files each one reads is unknown |
+| CLI: the model's window | Unknown: `agy models` lists names only |
+
+Left behind: the test conversation (two turns) in `~/.gemini/antigravity-cli/` (Antigravity's own store).
 
 ## 2. Target
 
@@ -65,7 +81,7 @@ session transcript in `~/.claude/projects/` among them (section 6).
 | Claude Code | `~/.claude/CLAUDE.md` | `~/.claude/CLAUDE.md` → `@AGENTS.md` → `~/.claude/AGENTS.md` |
 | Antigravity | — | `~/.gemini/AGENTS.md` is the one line `@[Kade's global rules](~/.claude/AGENTS.md)`: no symlink or copy, so it works on Windows |
 | Skills | `claude-skills`, saved to the claude.ai account | `agent-skills/` here (not `skills/`: inside `~/.claude` Claude would load them a second time beside the account skills); still saved to the account for Claude; copied to `~/.gemini/config/skills/` (IDE, app) and `~/.gemini/antigravity-cli/skills/` (CLI) |
-| Hooks | `global-sync`, `context-guard`, Claude only | also an Antigravity `SessionStart` hook running `global-sync`, replying in JSON, where the product has the event (step 3: the IDE's docs do not); `context-guard` only if a transcript holds token usage (step 3: the IDE's does not) |
+| Hooks | `global-sync`, `context-guard`, Claude only | also an Antigravity `SessionStart` hook running `global-sync`, replying in JSON, where the product has the event (step 3: the IDE's docs do not); `context-guard` only if a transcript holds token usage (step 3: the IDE's does not, the CLI's does) |
 | Agents | Claude assumed everywhere | `agents.json`: per agent its rules pointer, skills folder, hook file and reply format. `global-sync --install` and the setup scripts go through it; a new agent is one entry |
 | Each repository | `CLAUDE.md` | `AGENTS.md` (`git mv`) and the `@AGENTS.md` shim |
 
@@ -106,8 +122,9 @@ Each step is one PR, merged before the next.
    `enjay27/claude-global` or `enjay27/claude-skills`. Kade transfers both and renames this one
    (`gh` in a local session); the PR fixes the names found. GitHub redirects meanwhile; the
    cloud environment's setup script is pasted by Kade.
-3. **Checks before building.** Done 2026-10-15 with the IDE; results in section 1. The CLI and
-   the IDE's hooks are still unproven.
+3. **Checks before building.** Done 2026-10-15 with the IDE; results in section 1. The CLI
+   on 2026-10-16 (section 1): its transcript has token usage and a workspace hook runs. The IDE's
+   hooks are still unproven.
 4. **Skills move in** under `agent-skills/`, history kept; `claude-skills` archived.
 5. **Skills accept both:** "the repository's `AGENTS.md` (or `CLAUDE.md` where not yet
    migrated)", `claude/*` or `agent/*`, and what to do without `context-guard`. Kade saves them
@@ -133,7 +150,10 @@ Each step is one PR, merged before the next.
    `hooks/agent-sync.cjs` on every run, which keeps the include and the copies. Antigravity's own
    hook waits for a test on the PC that shows one running.
 10. **`context-guard` for Antigravity** (`PreInvocation`, `injectSteps`), only if a transcript
-    holds token usage. The IDE's does not (step 3); the CLI's is unchecked.
+    holds token usage. The IDE's does not (step 3); the CLI's does, and a `PreInvocation` hook
+    in a workspace's `.agents/hooks.json` runs there and can read it (2026-10-16), so step 10 is
+    for the CLI only. Before it is built: a user-level hook file the CLI loads (the one
+    `agent-sync` would write; only the workspace file is proven) and the model's window.
 11. **Each working repository, one PR each:** `git mv` to `AGENTS.md`, the shim, the
     `.agents/rules` copies, and `agent/*` in its auto-merge workflow if it has one. Pilot on
     `stella-rain/moderation` (not `stage-template`: a template's file is copied into every new
@@ -146,8 +166,8 @@ Each step is one PR, merged before the next.
 1. **Antigravity running commands unasked** (step 3): before it works in Kade's repositories,
    Kade decides its terminal setting (ask before each command, or an allow list). Its reads reach
    other tools' transcripts and caches in the home folder.
-2. **The CLI:** install `agy` (Google's script, a browser sign-in) only if Kade will use it; it is
-   the product whose docs have `SessionStart`.
+2. **The CLI:** Kade installed `agy` 1.3.6 on the PC on 2026-10-16. Its `SessionStart` and a
+   user-level hook file are untried (section 1).
 
 Decisions 5 (the name, chosen over `agent-home` and `ruleset`) and 6 (the author, chosen over a
 Google address) settled what this section held before. No control checks authors today.
