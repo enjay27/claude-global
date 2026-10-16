@@ -22,13 +22,10 @@ the skills moved in from `kade-agent/claude-skills` with their history (step 4).
 | `.claude/CLAUDE.md` | This repository's own notes: where its state is, its gates | Read by sessions opened here; never deployed |
 | `agent-skills/repo-workflow/` | The procedures behind the global rules for any of Kade's repositories: plan, gates, commit and PR style, state | Saved as a claude.ai account skill; every skill here is also copied to Antigravity by `agent-sync` |
 | `agent-skills/handoff-trigger/` | When to ask about or recommend a handoff and a new session, from the context size and the next task | Account skill |
-| `agent-skills/code-graph/` | Orient in a repository with code-review-graph (callers, tests, blast radius) instead of exploring file by file; `scripts/cg.cjs` installs and wraps it (in cloud sessions it downloads the `code-graph-<VERSION>-<n>` bundle, falling back to pip) | Account skill |
 | `agent-skills/session-resume/`, `session-handoff/` | Start a session from the recorded state; close one with a starter prompt | Account skills |
 | `scripts/skills/` | Scenario harness and fixtures for testing the skills | Run by the session changing a skill |
 | `docs/skills/` | The skills' scenarios, their results, and the improvement plan | Read by the session changing a skill |
 | `scripts/release.cjs` | `next`, `stamp <tag>`, `latest` | Called by the Release workflow |
-| `.github/workflows/code-graph-bundle.yml` | The code-graph bundle: code-review-graph prebuilt for cloud sessions (Linux x86_64), released as `code-graph-<VERSION>-<n>`, never marked latest | Runs on a push to `main` that changes `VERSION` in `cg.cjs`, the lock or the build; by hand with `rebuild` for a new build number |
-| `scripts/code-graph-bundle.cjs`, `scripts/code-graph-bundle/requirements.txt` | Builds, checks (licenses, output against a full install) and packs the bundle; the lock is the 8 packages `cg` imports, with hashes | After changing `VERSION` in `cg.cjs`: `node scripts/code-graph-bundle.cjs lock` in the same PR |
 | `docs/global-rules-plan.md` | One global rule set checked out as `~/.claude` on every machine and in the cloud, plus rules per repository | Closed 2026-10-09; every step done |
 | `docs/refactor-plan.md` | Moving `CLAUDE.md`, `MEMORY.md`, skills and rules to this setup, per repository | Read by the session doing the work |
 | `docs/governance-plan.md` | Accepted: two daily reports over the working repositories, drift (rules and workflows, filed as issues) and daily results (per owner), built in `kade-agent/code-quality-assurance` | Built step by step (section 9) |
@@ -45,14 +42,15 @@ apply in Claude Code (terminal and cloud) and Cowork sessions. `agent-skills/` i
 `~/.claude/agent-skills/`, which Claude does not load (only `~/.claude/skills/`, where it would load
 them a second time); `agent-sync` copies it to Antigravity's skills folders from the release on.
 
-`repo-workflow` and `code-graph` were `kade-workflow` and `graft-kade` until 2026-10-09. The
+`repo-workflow` was `kade-workflow` until 2026-10-09. The code graph skill (`graft-kade` until
+2026-10-09) and its bundle were removed on 2026-10-16. The
 dated records in `docs/skills/` were written in `claude-skills` and keep its paths: there,
 `skills/` is `agent-skills/` here, `scripts/` is `scripts/skills/`, `docs/` is `docs/skills/`.
 
 ## Tests
 
 ```bash
-node --test        # every *.test.cjs: hooks, release script, code-graph wrapper and bundle, repository checks
+node --test        # every *.test.cjs: hooks, release script, repository checks
 ```
 
 ## The context hook

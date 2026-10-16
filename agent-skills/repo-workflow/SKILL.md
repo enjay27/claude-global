@@ -14,9 +14,8 @@ procedures behind them. When to recommend a handoff from the context size is the
 
 ## 1. Plan before editing
 
-- Locate the code first (the `code-graph` skill, otherwise search), then present an impact
-  analysis: which files change, what logic changes, what does not, which gate applies, and
-  whether this session can run that gate.
+- Locate the code first, then present an impact analysis: which files change, what logic changes,
+  what does not, which gate applies, and whether this session can run that gate.
 - **Read another repository at its `origin/main`**, fetched first (`git fetch origin main`),
   never from a local or older clone: a stale clone gave the 2026-10-11 audit two false findings.
 - **A new module, crate or dependency is decided with Kade first**: bring the options, their
