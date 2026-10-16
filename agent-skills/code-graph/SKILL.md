@@ -24,6 +24,10 @@ cg() { node "<skill dir>/scripts/cg.cjs" "$@"; }
   `~/.cache/code-review-graph/venv-<version>` (about a minute and 330 MB, once per version).
   It needs Node and Python 3.10 or newer. If either is missing, say so in one line and carry
   on without the graph rather than installing them.
+- In a cloud session (Linux x86_64), the first call instead downloads the same version prebuilt
+  (about 36 MB, a few seconds), from the `code-graph-<version>-<n>` release in
+  `kade-agent/agent-config`, checked against its `SHA256SUMS`. If that fails, `cg` says why in
+  one line and installs with pip as above.
 - The graph of each repository lives in `~/.cache/code-review-graph/graphs/<repo path>`, so
   nothing is written into the repository and the working tree stays clean.
 - Every query updates the graph against the working tree first (about half a second).
@@ -122,7 +126,9 @@ separate step with its own plan. Never remove or commit it unasked.
 
 - The version is `VERSION` at the top of `scripts/cg.cjs`. To update, change it in a PR to
   `kade-agent/agent-config` with the wrapper tests (`node --test`) and a run on a real
-  repository; the next call installs the new version beside the old one.
+  repository; the next call installs the new version beside the old one. The same PR runs
+  `node scripts/code-graph-bundle.cjs lock`; its merge builds the cloud bundle of that version.
+  Until that release exists, cloud sessions install with pip.
 - When a release maps an extension in `EXTRA_EXTENSIONS` itself, drop that entry in the same PR.
 - An old `~/.cache/code-review-graph/venv-<version>` folder can be deleted. A graph built before
   an extension was added misses those files until rebuilt: delete its folder under `graphs/`.
