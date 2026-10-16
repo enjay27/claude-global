@@ -653,10 +653,14 @@ function cmdMerge(ctx, raw, opts) {
   };
 
   const mergeArgs = p.config.merge === "squash" ? ["merge", "-q", "--squash", branch] : ["merge", "-q", "--no-ff", "--no-commit", branch];
-  const merged = spawnSync("git", mergeArgs, { cwd: at.path, env: ctx.env, encoding: "utf8" });
+  const merged = spawnSync("git", [...identity.config, ...mergeArgs], { cwd: at.path, env: ctx.env, encoding: "utf8" });
   if (merged.status !== 0) {
+    const conflicted = gitTry(ctx, at.path, ["diff", "--name-only", "--diff-filter=U"]);
     undo();
-    fail(`merge conflict between ${branch} and ${main}: merged nothing. Merge ${main} into ${branch}, resolve it there, commit, then finish and merge again`);
+    if (conflicted) {
+      fail(`merge conflict between ${branch} and ${main} (${conflicted.split("\n").join(", ")}): merged nothing. Merge ${main} into ${branch}, resolve it there, commit, then finish and merge again`);
+    }
+    fail(`git merge failed: merged nothing. ${String(merged.stderr || merged.stdout).trim()}`);
   }
   if (p.config.gate) {
     const g = spawnSync(p.config.gate, { cwd: at.path, env: ctx.env, shell: true, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });

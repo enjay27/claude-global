@@ -358,6 +358,28 @@ test("merge: the gate runs on the merged tree and the PR doc is the message", ()
   assert.strictEqual(t.fields.closed, today);
 });
 
+test("merge needs no git identity but --author, and names git's own error when it is not a conflict", () => {
+  const s = sandbox();
+  const repo = started(s);
+  s.ok(repo, "finish", "T-1");
+  const env = { ...s.env };
+  for (const k of ["GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL"]) delete env[k];
+  env.EMAIL = "";
+  const run = (...args) => {
+    let err = "";
+    const code = board.main(args, { cwd: repo, env, out: () => {}, err: (x) => (err += x) });
+    return { code, err };
+  };
+  const bare = run("merge", "T-1", "--no-pull");
+  assert.strictEqual(bare.code, 1);
+  assert.doesNotMatch(bare.err, /conflict/);
+  assert.match(bare.err, /identity|user\.email|Author/i);
+  assert.strictEqual(s.git(repo, "status", "--porcelain"), "");
+  const r = run("merge", "T-1", "--author", AUTHOR);
+  assert.strictEqual(r.code, 0, r.err);
+  assert.strictEqual(s.git(repo, "log", "-1", "--format=%cn <%ce>"), AUTHOR);
+});
+
 test("merge with a failing gate leaves main as it was", () => {
   const s = sandbox();
   const repo = started(s, { gate: 'node -e "process.exit(3)"' });
