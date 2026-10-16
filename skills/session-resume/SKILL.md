@@ -1,54 +1,42 @@
 ---
 name: session-resume
-description: Start a session in one of Kade's repositories by reconstructing where the work stands - read the state (STATUS.md on the status branch, labelled issues, or MEMORY.md), open and recently merged PRs, and the current branch, then summarize and propose the next task. Use when Kade opens a session with "resume", "continue", "where were we", or pastes a starter prompt from a handoff.
+description: Start a session in a local repository by reconstructing where the work stands - read the board in AgentNotes (STATUS.md and the task files), the agent branches and worktrees, the last merges and git status, then summarize and propose the next task. Use when the developer opens a session with "resume", "continue", "where were we", or pastes a starter prompt from a handoff.
 ---
 
 # Session resume
 
-Goal: in one short reply, Kade sees where things stand and what you propose to do next.
-Do not edit anything until he confirms (repo-workflow, plan first).
+Goal: in one short reply, the developer sees where things stand and what you propose to do
+next. Do not edit anything until they confirm (repo-workflow, plan first). `agent-board` is
+`node ~/.claude/tools/agent-board.cjs`, run inside the repository.
 
-## 1. Read the state
+## 1. Read the board
 
-The repository's `AGENTS.md` (or `CLAUDE.md` where not yet migrated) says which source it uses
-(its *Current state* line):
+```bash
+node ~/.claude/tools/agent-board.cjs board
+```
 
-1. **Org Project repositories** (Stella Rain: the `status` branch of `app`; Resonance: the `status` branch
-   of `star-resonance/resonance-stream`; Kade Agent: the `status` branch of
-   `kade-agent/code-quality-assurance`): the snapshot.
-   ```bash
-   git fetch origin status && git show origin/status:STATUS.md
-   ```
-   Check its *Generated* time. If it is older than the work needs, run the snapshot workflow
-   (`project-snapshot.yml`, `workflow_dispatch`, a repository-scoped call), wait for it, and read again.
-2. **`MEMORY.md` repositories**: `MEMORY.md` (often already loaded through `AGENTS.md` or `CLAUDE.md`).
-   If its *Now* names a handoff or session file, read that one file, not the whole folder.
+It prints every column and the path of `STATUS.md`; read that file for *Waiting on the
+developer*, *NOT VERIFIED* and the roadmap. If there is no project yet, say so and point to
+`repo-workflow` section 0.
 
-If Kade pasted a starter prompt from `session-handoff`, it names the branch, PR and next step:
-trust it, then confirm against the sources above.
+If the developer pasted a starter prompt from `session-handoff`, it names the task, branch and
+next step: trust it, then confirm with `agent-board show <id>` and the task file's text.
 
 ## 2. Read the recent work
 
-- Open PRs and pushed branches from `claude/*` and `agent/*` (Claude's and other agents' work):
-  their status and CI result. A branch without a PR is work in flight; its last commit says where
-  it stopped.
-- The last 3 to 5 merged PRs: read their *NOT VERIFIED* and *Wrong turns* sections.
-- `git status` and the current branch. Uncommitted changes are Kade's unless the starter
-  prompt says they are a parked task.
+- `git status` and the current branch. Uncommitted changes are the developer's unless the
+  starter prompt says they are a parked task.
+- `git branch --list "agent/*"` and `git worktree list`: a task branch is work in flight; its
+  last commit (a `WIP:` subject means parked) and the task file say where it stopped.
+- The last 3 to 5 merges on the main branch (`git log --merges -5 --format="%h %s"` and
+  `git log -1 --format=%B <hash>` for one): read their *NOT VERIFIED* and *Wrong turns*.
 
-## 3. Know the machine
-
-Find out which machine this session runs on (Windows, macOS, or the NAS over SSH). Checks labelled
-`cmd:verify-needs-<machine>` for another machine are not for this session: list them as waiting.
-
-## 4. Report (at most about 15 lines)
+## 3. Report (at most about 15 lines)
 
 - **Where things stand**: one or two lines.
-- **Now**: the items in progress.
-- **Machine**: name it in one line.
-- **Waiting on Kade** first (decisions assigned to him), then **Needs <this machine>** (this session can run
-  them), then **Needs <other machine>** (say which machine they wait for), then anything unproven.
-- **Proposed next task**: one task, with the gate it needs and whether this session can run it; never a
-  check that needs another machine.
+- **Now** and **In review**: the tasks, with their branches.
+- **Waiting on the developer** first (decisions and merges to approve), then **NOT VERIFIED**
+  (checks left for them), then anything unproven.
+- **Proposed next task**: one task, with the gate it needs and whether this session can run it.
 
-Then ask him to confirm or redirect.
+Then ask them to confirm or redirect.

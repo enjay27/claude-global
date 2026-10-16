@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// context-guard: warns when a Claude Code session's context is filling up, so Kade can choose
+// context-guard: warns when a Claude Code session's context is filling up, so the developer can choose
 // a handoff and a fresh session before quality drops or auto-compaction rewrites the history.
 //
 // Hooks do not receive context usage directly, but they receive `transcript_path`. Every
@@ -10,12 +10,12 @@
 //   UserPromptSubmit         at the warning line Claude answers, then adds one line with the number;
 //                            at the handoff line it first recommends a handoff and offers the
 //                            choices (handoff + new session, /compact, continue), then answers
-//                            the prompt: it recommends, never forces. Kade also sees a one-line
+//                            the prompt: it recommends, never forces. The developer also sees a one-line
 //                            warning.
 //                            Each level fires once until usage drops again.
 //   SessionStart (compact)   after a compaction: tells Claude to say so and offer a handoff.
 //
-// Lines (Kade, 2026-10-08; number line moved 200k -> 300k 2026-10-10): show the number at 300k
+// Lines (2026-10-08; number line moved 200k -> 300k 2026-10-10): show the number at 300k
 // tokens, recommend a handoff at 400k, but never later than 40% / 60% of the window, so a
 // 200k-window model gets 80k / 120k. Quality drops gradually as
 // context grows (Anthropic: "context rot"); no vendor publishes a switch point, so these are
@@ -29,7 +29,7 @@
 //   CONTEXT_HANDOFF_TOKENS   default 400000     CONTEXT_HANDOFF_PCT   default 60 (cap)
 //
 // The hook never blocks a prompt: on any error it prints nothing and exits 0.
-// Source of truth: github.com/kade-agent/agent-config (hooks/). Runs from ~/.claude/hooks for every repository (settings.global.json).
+// Source of truth: the local-config branch of github.com/kade-agent/agent-config (hooks/); installed into ~/.claude/hooks by setup/install.cjs.
 
 "use strict";
 
@@ -128,9 +128,9 @@ function fmt(n) {
 }
 
 const CHOICES =
-  "Offer Kade three choices and let him pick: " +
+  "Offer the developer three choices and let them pick: " +
   "(1) handoff and a new session (use the session-handoff skill), " +
-  "(2) /compact with a focus he names, " +
+  "(2) /compact with a focus they name, " +
   "(3) continue as is.";
 
 // Pure decision: what to emit for one event. Returns {output, level} or null.
@@ -146,7 +146,7 @@ function decide(input, transcriptText, previousLevel, env) {
           hookEventName: "SessionStart",
           additionalContext:
             "context-guard: this session was just compacted, so earlier detail is now a summary. " +
-            "In your next reply, tell Kade this in one line before anything else. " +
+            "In your next reply, tell the developer this in one line before anything else. " +
             CHOICES,
         },
       },
@@ -171,12 +171,12 @@ function decide(input, transcriptText, previousLevel, env) {
   const context =
     level === 2
       ? `context-guard: the context holds ${used}, past the ${fmt(handoff)} handoff line. ` +
-        "In the first line of your reply, tell Kade the number and recommend a handoff. " +
+        "In the first line of your reply, tell the developer the number and recommend a handoff. " +
         CHOICES +
         " Recommend, never force: then carry on with this prompt as usual in the same reply " +
         "(for a totally different type of task, ask and wait, as the handoff-trigger skill says)."
       : `context-guard: the context holds ${used} (warning line ${fmt(warn)}). ` +
-        "Answer this prompt, then at the end add one line telling Kade the number and that a " +
+        "Answer this prompt, then at the end add one line telling the developer the number and that a " +
         "handoff will be recommended at " +
         `${fmt(handoff)}. Do not recommend a handoff before then; if this prompt starts a ` +
         "totally different type of task, ask whether to hand off (the handoff-trigger skill).";

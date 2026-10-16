@@ -100,7 +100,7 @@ test("recommends a handoff at 400k even after the warning", () => {
 
 test("the 400k handoff is recommended, never forced: the prompt is still answered", () => {
   const context = g.decide(prompt, entry(0, 409000), 1, {}).output.hookSpecificOutput.additionalContext;
-  assert.doesNotMatch(context, /until he answers/);
+  assert.doesNotMatch(context, /until (he|they) answers?/);
   assert.match(context, /then carry on with this prompt/i);
 });
 
