@@ -13,8 +13,9 @@
 // A target is a name (`resume`) or a repository-relative file and a name (`src/engine.rs::Engine.step`).
 //
 // The tool is installed on first use into its own virtual environment under the cache, one per
-// pinned version, so nothing is installed by hand. The graph of each repository lives in the cache
-// too (CRG_DATA_DIR), so the working tree stays clean. Queries update the graph first.
+// pinned version, so nothing is installed by hand; a cloud session downloads it prebuilt instead
+// (fetchBundle), and installs with pip only when that fails. The graph of each repository lives in
+// the cache too (CRG_DATA_DIR), so the working tree stays clean. Queries update the graph first.
 "use strict";
 
 const fs = require("fs");
@@ -193,6 +194,16 @@ function formatSearch(json, root) {
   return json.results.map((r) => `${rel(r.file_path, root)}:${r.line_start}  ${r.kind}  ${label(r)}`);
 }
 
+// With nothing changed, impact answers in JSON with no changed files and detect-changes only prints
+// "No changes detected." as text, so cg answers for both without asking detect-changes.
+function noChanges(impact) {
+  return impact.status === "ok" && !(impact.changed_files || []).length && !(impact.changed_nodes || []).length;
+}
+
+function formatNoChanges(base) {
+  return [`No changes against ${base} in the files the graph indexes.`];
+}
+
 function formatImpact(impact, changes, root) {
   const out = [];
   for (const s of [impact.summary, changes && changes.summary]) if (s) out.push(...s.split(/\r?\n/));
@@ -223,17 +234,110 @@ function findPython() {
   return null;
 }
 
-function ensureTool(cache) {
+// ---- the cloud bundle ------------------------------------------------------------------------
+// A cloud session (CLAUDE_CODE_REMOTE) on Linux x86_64 downloads code-review-graph prebuilt, as
+// .github/workflows/code-graph-bundle.yml in kade-agent/agent-config releases it for VERSION,
+// instead of a pip install of a minute or more. Anything else, and any failure, installs with pip.
+
+const BUNDLE_REPO = "kade-agent/agent-config";
+const BUNDLE_ASSET = "crg-linux-x86_64.tar.gz";
+
+function bundleWanted(env, platform, arch) {
+  return env.CLAUDE_CODE_REMOTE === "true" && platform === "linux" && arch === "x64";
+}
+
+function bundleUrl(build, file) {
+  return `https://github.com/${BUNDLE_REPO}/releases/download/code-graph-${VERSION}-${build}/${file}`;
+}
+
+// exists(n) is true, false, or null when it cannot tell; the probe stops at the first false or null.
+function latestBuild(exists, max = 20) {
+  let found = null;
+  for (let n = 1; n <= max; n++) {
+    if (exists(n) !== true) break;
+    found = n;
+  }
+  return found;
+}
+
+function sumFor(text, asset) {
+  for (const line of text.split("\n")) {
+    const m = /^([0-9a-f]{64})\s+\*?(\S+)\s*$/.exec(line);
+    if (m && m[2] === asset) return m[1];
+  }
+  return null;
+}
+
+// Downloads, checks and unpacks the latest build into venvDir(cache), through a temporary folder in
+// the cache so a half-done download never looks installed. io: probe(url), fetch(url, file), untar(file, dir).
+function fetchBundle(cache, io, why = () => {}) {
   const venv = venvDir(cache);
-  const exe = venvExe(venv, process.platform);
+  const build = latestBuild((n) => io.probe(bundleUrl(n, "SHA256SUMS")));
+  if (!build) return why(`no code-graph-${VERSION} release found or reachable`), false;
+  fs.mkdirSync(cache, { recursive: true });
+  const tmp = fs.mkdtempSync(path.join(cache, ".bundle-"));
+  try {
+    const sums = path.join(tmp, "SHA256SUMS");
+    const tarball = path.join(tmp, BUNDLE_ASSET);
+    if (!io.fetch(bundleUrl(build, "SHA256SUMS"), sums) || !io.fetch(bundleUrl(build, BUNDLE_ASSET), tarball)) {
+      return why(`downloading code-graph-${VERSION}-${build} failed`), false;
+    }
+    const want = sumFor(fs.readFileSync(sums, "utf8"), BUNDLE_ASSET);
+    const have = require("crypto").createHash("sha256").update(fs.readFileSync(tarball)).digest("hex");
+    if (!want || want !== have) return why(`${BUNDLE_ASSET} does not match its SHA256SUMS`), false;
+    const out = path.join(tmp, "out");
+    fs.mkdirSync(out);
+    if (!io.untar(tarball, out)) return why(`unpacking ${BUNDLE_ASSET} failed`), false;
+    const crg = path.join(out, "crg");
+    let info = {};
+    try {
+      info = JSON.parse(fs.readFileSync(path.join(crg, "BUNDLE.json"), "utf8"));
+    } catch {}
+    if (info.code_review_graph !== VERSION || !fs.existsSync(venvExe(crg, "linux"))) {
+      return why(`code-graph-${VERSION}-${build} does not hold code-review-graph ${VERSION}`), false;
+    }
+    if (!fs.existsSync(venv)) fs.renameSync(crg, venv);
+    return fs.existsSync(venvExe(venv, "linux"));
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+// fetchBundle, with anything it throws (a full disk, a permission) turned into a reason for pip.
+function tryBundle(cache, io, why) {
+  try {
+    return fetchBundle(cache, io, why);
+  } catch (e) {
+    why(`the bundle failed: ${e.message}`);
+    return false;
+  }
+}
+
+const curlIo = {
+  probe: (url) => {
+    const r = run("curl", ["-s", "-L", "-o", "/dev/null", "-w", "%{http_code}", url]);
+    if (r.status !== 0) return null;
+    return r.stdout === "200" ? true : r.stdout === "404" ? false : null;
+  },
+  fetch: (url, file) => run("curl", ["-fsSL", "--retry", "2", "-o", file, url]).status === 0,
+  untar: (file, dir) => run("tar", ["-xzf", file, "-C", dir]).status === 0,
+};
+
+function ensureTool(cache, { env = process.env, platform = process.platform, arch = process.arch, io = curlIo } = {}) {
+  const venv = venvDir(cache);
+  const exe = venvExe(venv, platform);
   if (fs.existsSync(exe)) return venv;
+  if (bundleWanted(env, platform, arch)) {
+    console.error(`cg: downloading the code-review-graph ${VERSION} bundle into ${venv}`);
+    if (tryBundle(cache, io, (reason) => console.error(`cg: ${reason}; installing with pip instead`))) return venv;
+  }
   const python = findPython();
   if (!python) fail("code-review-graph needs Python 3.10 or newer, and none was found on PATH.");
   console.error(`cg: installing code-review-graph ${VERSION} into ${venv} (first use, about a minute)`);
   fs.mkdirSync(cache, { recursive: true });
   let r = run(python, ["-m", "venv", venv]);
   if (r.status !== 0) fail(`creating the virtual environment failed:\n${r.stderr}`);
-  r = run(venvPython(venv, process.platform),["-m", "pip", "install", "--disable-pip-version-check", "-q", `code-review-graph==${VERSION}`]);
+  r = run(venvPython(venv, platform), ["-m", "pip", "install", "--disable-pip-version-check", "-q", `code-review-graph==${VERSION}`]);
   if (r.status !== 0 || !fs.existsSync(exe)) {
     fs.rmSync(venv, { recursive: true, force: true });
     fail(`installing code-review-graph ${VERSION} failed:\n${r.stderr}`);
@@ -300,8 +404,13 @@ function main(argv) {
       const head = run("git", ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], { cwd: root });
       base = head.status === 0 ? head.stdout.trim() : "origin/main";
     }
+    // code-review-graph answers an unknown ref as "No changed files detected.", like no changes.
+    if (run("git", ["rev-parse", "--verify", "--quiet", `${base}^{commit}`], { cwd: root }).status !== 0) {
+      fail(`unknown base ${base}; pass --base <branch or commit>`);
+    }
     refresh();
-    print(formatImpact(json("impact", "--base", base, "--max-results", "60"), json("detect-changes", "--base", base), root));
+    const impact = json("impact", "--base", base, "--max-results", "60");
+    print(noChanges(impact) ? formatNoChanges(base) : formatImpact(impact, json("detect-changes", "--base", base), root));
   } else {
     fail(`unknown command ${command}; run it with no arguments for the list`);
   }
@@ -313,6 +422,13 @@ module.exports = {
   VERSION,
   EXTRA_EXTENSIONS,
   findPython,
+  bundleWanted,
+  bundleUrl,
+  latestBuild,
+  sumFor,
+  fetchBundle,
+  tryBundle,
+  ensureTool,
   toolCommand,
   cacheRoot,
   dataDir,
@@ -327,4 +443,6 @@ module.exports = {
   formatSkeleton,
   formatSearch,
   formatImpact,
+  noChanges,
+  formatNoChanges,
 };

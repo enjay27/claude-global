@@ -96,6 +96,116 @@ test("the build prints only its summary line", () => {
   assert.strictEqual(cg.buildLine("Traceback ...\nValueError: no"), null);
 });
 
+// ---- the cloud bundle -----------------------------------------------------------------------
+// Cloud sessions download the bundle .github/workflows/code-graph-bundle.yml releases instead of
+// installing with pip. The network and tar are replaced here; the real download is checked by hand.
+
+test("only a cloud session on Linux x86_64 downloads the bundle", () => {
+  assert.strictEqual(cg.bundleWanted({ CLAUDE_CODE_REMOTE: "true" }, "linux", "x64"), true);
+  assert.strictEqual(cg.bundleWanted({}, "linux", "x64"), false, "a local session keeps pip");
+  assert.strictEqual(cg.bundleWanted({ CLAUDE_CODE_REMOTE: "1" }, "linux", "x64"), false);
+  assert.strictEqual(cg.bundleWanted({ CLAUDE_CODE_REMOTE: "true" }, "linux", "arm64"), false);
+  assert.strictEqual(cg.bundleWanted({ CLAUDE_CODE_REMOTE: "true" }, "darwin", "x64"), false);
+  assert.strictEqual(cg.bundleWanted({ CLAUDE_CODE_REMOTE: "true" }, "win32", "x64"), false);
+});
+
+test("a build's files are release downloads of code-graph-<VERSION>-<n>", () => {
+  assert.strictEqual(
+    cg.bundleUrl(2, "SHA256SUMS"),
+    `https://github.com/kade-agent/agent-config/releases/download/code-graph-${cg.VERSION}-2/SHA256SUMS`
+  );
+});
+
+test("the latest build is the last one found probing 1, 2, ... ; an error stops the probe", () => {
+  const have = (n) => (k) => k <= n;
+  assert.strictEqual(cg.latestBuild(have(0)), null);
+  assert.strictEqual(cg.latestBuild(have(1)), 1);
+  assert.strictEqual(cg.latestBuild(have(3)), 3);
+  assert.strictEqual(cg.latestBuild(() => null), null, "no answer at all: pip");
+  assert.strictEqual(cg.latestBuild((k) => (k === 1 ? true : null)), 1, "an older build of the same version still serves");
+  assert.strictEqual(cg.latestBuild(have(99), 5), 5, "the probe stops at its cap");
+});
+
+test("the checksum of the asset is read from SHA256SUMS", () => {
+  const hex = "c5fd9255f41400785a94d4989f7aab99c2d7802ff969d0ea25340854984a5e0c";
+  assert.strictEqual(cg.sumFor(`${hex}  crg-linux-x86_64.tar.gz\n`, "crg-linux-x86_64.tar.gz"), hex);
+  assert.strictEqual(cg.sumFor(`${hex} *crg-linux-x86_64.tar.gz\n`, "crg-linux-x86_64.tar.gz"), hex);
+  assert.strictEqual(cg.sumFor(`${hex}  other.tar.gz\n`, "crg-linux-x86_64.tar.gz"), null);
+  assert.strictEqual(cg.sumFor("<html>Not Found</html>", "crg-linux-x86_64.tar.gz"), null);
+});
+
+// A fake release: the tarball is any bytes, and untar lays out what the real bundle holds.
+function fakeIo({ builds = 1, version = cg.VERSION, corrupt = false, fetchFails = false } = {}) {
+  const asset = Buffer.from("the bundle");
+  const hash = require("crypto").createHash("sha256").update(asset).digest("hex");
+  const calls = [];
+  return {
+    calls,
+    probe: (url) => (calls.push(["probe", url]), Number(/-(\d+)\/SHA256SUMS$/.exec(url)[1]) <= builds),
+    fetch: (url, file) => {
+      calls.push(["fetch", url]);
+      if (fetchFails) return false;
+      fs.writeFileSync(file, url.endsWith("SHA256SUMS") ? `${hash}  crg-linux-x86_64.tar.gz\n` : corrupt ? "tampered" : asset);
+      return true;
+    },
+    untar: (file, dir) => {
+      const crg = path.join(dir, "crg");
+      fs.mkdirSync(path.join(crg, "bin"), { recursive: true });
+      fs.writeFileSync(path.join(crg, "bin", "code-review-graph"), "#!/bin/sh\n");
+      fs.writeFileSync(path.join(crg, "BUNDLE.json"), JSON.stringify({ code_review_graph: version }));
+      return true;
+    },
+  };
+}
+
+function freshCache() {
+  return fs.mkdtempSync(path.join(os.tmpdir(), "cg-bundle-"));
+}
+
+test("a checked bundle of the pinned version becomes the tool's environment, at the latest build", () => {
+  const cache = freshCache();
+  const io = fakeIo({ builds: 2 });
+  assert.strictEqual(cg.fetchBundle(cache, io), true);
+  assert.ok(fs.existsSync(cg.venvExe(cg.venvDir(cache), "linux")));
+  assert.ok(io.calls.some(([k, u]) => k === "fetch" && u === cg.bundleUrl(2, "crg-linux-x86_64.tar.gz")));
+  assert.deepStrictEqual(fs.readdirSync(cache), [path.basename(cg.venvDir(cache))], "nothing else is left in the cache");
+});
+
+test("no release, a failed download, a wrong checksum or another version leave no environment", () => {
+  for (const [why, opts] of [
+    ["no release", { builds: 0 }],
+    ["download failed", { fetchFails: true }],
+    ["checksum", { corrupt: true }],
+    ["version", { version: "0.0.1" }],
+  ]) {
+    const cache = freshCache();
+    const reasons = [];
+    assert.strictEqual(cg.fetchBundle(cache, fakeIo(opts), (r) => reasons.push(r)), false, why);
+    assert.deepStrictEqual(fs.readdirSync(cache), [], `${why}: the cache is left empty`);
+    assert.strictEqual(reasons.length, 1, `${why}: one reason is given`);
+  }
+});
+
+test("ensureTool takes the bundle in a cloud session and never downloads when the tool is there", () => {
+  const cache = freshCache();
+  const remote = { env: { CLAUDE_CODE_REMOTE: "true" }, platform: "linux", arch: "x64" };
+  const io = fakeIo();
+  assert.strictEqual(cg.ensureTool(cache, { ...remote, io }), cg.venvDir(cache));
+  const again = fakeIo();
+  assert.strictEqual(cg.ensureTool(cache, { ...remote, io: again }), cg.venvDir(cache));
+  assert.deepStrictEqual(again.calls, [], "an existing environment is used as it is");
+});
+
+test("an error inside the download is a reason to fall back to pip, not a crash of cg", () => {
+  const cache = freshCache();
+  const io = { ...fakeIo(), untar: () => { throw new Error("ENOSPC: no space left on device"); } };
+  const reasons = [];
+  assert.strictEqual(cg.tryBundle(cache, io, (r) => reasons.push(r)), false);
+  assert.deepStrictEqual(reasons, ["the bundle failed: ENOSPC: no space left on device"]);
+  assert.deepStrictEqual(fs.readdirSync(cache), [], "the temporary folder is removed");
+  assert.strictEqual(cg.tryBundle(freshCache(), fakeIo(), () => {}), true);
+});
+
 // ---- queries ------------------------------------------------------------------------------
 
 test("callers print one line per call site, repository-relative, sorted, tests marked", () => {
@@ -277,4 +387,23 @@ test("impact prints both summaries and the reached code outside the changed file
     "Reached outside the changed files:",
     "  src/replay.rs:347  verify_inner",
   ]);
+});
+
+test("impact with nothing changed is an answer, not an error", () => {
+  // What code-review-graph 2.3.9's impact printed on stella-rain/core with no changes; its
+  // detect-changes then printed only the text "No changes detected.", which is not JSON.
+  const empty = {
+    status: "ok",
+    summary: "No changed files detected.",
+    changed_nodes: [],
+    impacted_nodes: [],
+    impacted_files: [],
+    truncated: false,
+    total_impacted: 0,
+  };
+  assert.strictEqual(cg.noChanges(empty), true);
+  assert.deepStrictEqual(cg.formatNoChanges("origin/main"), ["No changes against origin/main in the files the graph indexes."]);
+  assert.strictEqual(cg.noChanges({ status: "ok", changed_files: ["src/engine.rs"], changed_nodes: [] }), false);
+  assert.strictEqual(cg.noChanges({ status: "ok", changed_nodes: [fn("src/engine.rs", "tick", 200)] }), false);
+  assert.strictEqual(cg.noChanges({ status: "error", summary: "bad ref" }), false, "an error is not 'no changes'");
 });
