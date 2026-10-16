@@ -388,3 +388,22 @@ test("impact prints both summaries and the reached code outside the changed file
     "  src/replay.rs:347  verify_inner",
   ]);
 });
+
+test("impact with nothing changed is an answer, not an error", () => {
+  // What code-review-graph 2.3.9's impact printed on stella-rain/core with no changes; its
+  // detect-changes then printed only the text "No changes detected.", which is not JSON.
+  const empty = {
+    status: "ok",
+    summary: "No changed files detected.",
+    changed_nodes: [],
+    impacted_nodes: [],
+    impacted_files: [],
+    truncated: false,
+    total_impacted: 0,
+  };
+  assert.strictEqual(cg.noChanges(empty), true);
+  assert.deepStrictEqual(cg.formatNoChanges("origin/main"), ["No changes against origin/main in the files the graph indexes."]);
+  assert.strictEqual(cg.noChanges({ status: "ok", changed_files: ["src/engine.rs"], changed_nodes: [] }), false);
+  assert.strictEqual(cg.noChanges({ status: "ok", changed_nodes: [fn("src/engine.rs", "tick", 200)] }), false);
+  assert.strictEqual(cg.noChanges({ status: "error", summary: "bad ref" }), false, "an error is not 'no changes'");
+});

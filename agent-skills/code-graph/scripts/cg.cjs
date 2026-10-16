@@ -194,6 +194,16 @@ function formatSearch(json, root) {
   return json.results.map((r) => `${rel(r.file_path, root)}:${r.line_start}  ${r.kind}  ${label(r)}`);
 }
 
+// With nothing changed, impact answers in JSON with no changed files and detect-changes only prints
+// "No changes detected." as text, so cg answers for both without asking detect-changes.
+function noChanges(impact) {
+  return impact.status === "ok" && !(impact.changed_files || []).length && !(impact.changed_nodes || []).length;
+}
+
+function formatNoChanges(base) {
+  return [`No changes against ${base} in the files the graph indexes.`];
+}
+
 function formatImpact(impact, changes, root) {
   const out = [];
   for (const s of [impact.summary, changes && changes.summary]) if (s) out.push(...s.split(/\r?\n/));
@@ -394,8 +404,13 @@ function main(argv) {
       const head = run("git", ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], { cwd: root });
       base = head.status === 0 ? head.stdout.trim() : "origin/main";
     }
+    // code-review-graph answers an unknown ref as "No changed files detected.", like no changes.
+    if (run("git", ["rev-parse", "--verify", "--quiet", `${base}^{commit}`], { cwd: root }).status !== 0) {
+      fail(`unknown base ${base}; pass --base <branch or commit>`);
+    }
     refresh();
-    print(formatImpact(json("impact", "--base", base, "--max-results", "60"), json("detect-changes", "--base", base), root));
+    const impact = json("impact", "--base", base, "--max-results", "60");
+    print(noChanges(impact) ? formatNoChanges(base) : formatImpact(impact, json("detect-changes", "--base", base), root));
   } else {
     fail(`unknown command ${command}; run it with no arguments for the list`);
   }
@@ -428,4 +443,6 @@ module.exports = {
   formatSkeleton,
   formatSearch,
   formatImpact,
+  noChanges,
+  formatNoChanges,
 };

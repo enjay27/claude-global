@@ -84,7 +84,8 @@ Run the blast radius against the default branch:
 cg impact            # or: cg impact --base origin/<branch>
 ```
 
-It prints the blast radius, the risk score with untested changed functions, and the code
+With nothing changed it prints one line saying so; an unknown base stops it with an error.
+Otherwise it prints the blast radius, the risk score with untested changed functions, and the code
 reached outside the changed files. For each changed function with a `?` caller or several
 definitions, `git grep` its name and add the call sites it finds. Then put this in the PR
 description:
