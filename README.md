@@ -1,59 +1,89 @@
-# agent-config
+# agent-config: the local-config line
 
-Kade's Claude configuration for every repository: the global rules, the hooks, the account
-skills, and the plans that move each repository onto them. Public. This repository was
-`claude-global` under Kade's own account until 2026-10-15 (`docs/agent-migration-plan.md`, step 2);
-the skills moved in from `kade-agent/claude-skills` with their history (step 4).
+The global rules, skills and tools for agents (Claude Code, Pi) on a Windows PC whose
+repositories are local only: no push, no remote to manage, no CI, a local model. Public, and
+kept generic: nothing here names a company, a path or a host.
 
-| Path | What | How it is used |
-|---|---|---|
-| `AGENTS.md` | The global rules, deployed as `~/.claude/AGENTS.md`; line 1 is the release | Released by the Release workflow |
-| `CLAUDE.md` | The one line `@AGENTS.md`: Claude Code loads `~/.claude/CLAUDE.md` in every session, and it imports the rules | Deployed with them |
-| `hooks/context-guard.cjs` | Shows the context number at 300k tokens, recommends (never forces) a handoff at 400k (never later than 40% / 60% of the window), and after a compaction | User-level `UserPromptSubmit` and `SessionStart` (compact) hooks, registered from `settings.global.json`; repositories no longer vendor a copy |
-| `hooks/global-sync.cjs` | Keeps `~/.claude` on the latest release tag; prints the new rules into the session that moved; then runs `agent-sync` | User-level `SessionStart` hook, registered from `settings.global.json` |
-| `hooks/agent-sync.cjs` | Keeps the other agents' copies: the one-line rules include and the skills, for each agent in `agents.json` whose folder exists; touches nothing it did not write | Called by `global-sync` on every run; no hook of its own |
-| `agents.json` | Antigravity: the rules include `~/.gemini/AGENTS.md`, the skills folders `~/.gemini/config/skills/` (IDE, app) and `~/.gemini/antigravity-cli/skills/` (CLI) | Read by `agent-sync` |
-| `settings.global.json` | The hook entries merged into `~/.claude/settings.json` (only entries pointing into `~/.claude/hooks/`) | Read by `global-sync` |
-| `deploy-exclude` | The allowlist for `~/.claude`: nothing else there can be tracked | Copied to `~/.claude/.git/info/exclude` |
-| `setup/cloud-setup.sh` | Checks this repository out into `~/.claude` in a cloud session | Pasted into the cloud environment's setup script |
-| `setup/local-setup.ps1`, `setup/local-setup.sh` | The same on a Windows PC (PowerShell, not Git Bash) and on macOS or Linux, once per machine | Run by Kade; they stop before overwriting anything |
-| `.github/workflows/release.yml` | Release: on `rc`, tags `vYYYY.MM.DD` (`.2` later the same day) on a commit that stamps line 1 of `AGENTS.md`, with a GitHub release | Started by Kade (Actions → Release → Run on `rc`) after a PR from `main` into `rc` |
-| `.github/workflows/project-sync.yml` | Adds issues to the Project "Kade Agent" and applies their `cmd:` labels, through the bridge in `kade-agent/.github` | Runs on issue events |
-| `.claude/CLAUDE.md` | This repository's own notes: where its state is, its gates | Read by sessions opened here; never deployed |
-| `agent-skills/repo-workflow/` | The procedures behind the global rules for any of Kade's repositories: plan, gates, commit and PR style, state | Saved as a claude.ai account skill; every skill here is also copied to Antigravity by `agent-sync` |
-| `agent-skills/handoff-trigger/` | When to ask about or recommend a handoff and a new session, from the context size and the next task | Account skill |
-| `agent-skills/session-resume/`, `session-handoff/` | Start a session from the recorded state; close one with a starter prompt | Account skills |
-| `scripts/skills/` | Scenario harness and fixtures for testing the skills | Run by the session changing a skill |
-| `docs/skills/` | The skills' scenarios, their results, and the improvement plan | Read by the session changing a skill |
-| `scripts/release.cjs` | `next`, `stamp <tag>`, `latest` | Called by the Release workflow |
-| `docs/global-rules-plan.md` | One global rule set checked out as `~/.claude` on every machine and in the cloud, plus rules per repository | Closed 2026-10-09; every step done |
-| `docs/refactor-plan.md` | Moving `CLAUDE.md`, `MEMORY.md`, skills and rules to this setup, per repository | Read by the session doing the work |
-| `docs/governance-plan.md` | Accepted: two daily reports over the working repositories, drift (rules and workflows, filed as issues) and daily results (per owner), built in `kade-agent/code-quality-assurance` | Built step by step (section 9) |
-| `docs/repo-rules-review.html` | 2026-10-11 audit: each repository's rules and workflows against the global rules, with advice and proposed global changes | Read as an Artifact page (the Mermaid diagrams render there); its actions become their own PRs |
+`main` is the GitHub setup (releases, issues, the Project, Actions). This branch never merges
+into it; a fix to a shared part (`hooks/context-guard.cjs`, the skills) is ported by hand.
 
-Each repository's `CLAUDE.md` keeps its own gates, paths and branch rules and names what it
-overrides of the global rules; nothing here holds repository-specific facts.
+## What replaces what
 
-## Changing a skill
+| GitHub setup (`main`) | Here |
+|---|---|
+| Issues, Project fields, `cmd:` labels | Task files in `AgentNotes\<project>\tasks\`, changed with `agent-board set` |
+| `STATUS.md` on the `status` branch | `AgentNotes\<project>\STATUS.md`, rewritten on every change |
+| Pull request and its description | The task branch, the PR doc in `AgentNotes\<project>\prs\`; `agent-board merge` after the developer's yes |
+| Release tags, `global-sync`, `agent-sync` | `git pull` in the clone, then `node setup\install.cjs` |
+| `.gitattributes` in every repository | `.git\info\attributes` in each repository (`install.cjs --repo`), never committed |
+| claude.ai account skills | `~/.claude/skills/` and `~/.pi/agent/skills/` |
 
-Edit `agent-skills/<name>/SKILL.md` here, merge, then ask Claude to propose the updated skill and
-save it from the card. The file here is the source; the account copy follows it. Account skills
-apply in Claude Code (terminal and cloud) and Cowork sessions. `agent-skills/` is deployed as
-`~/.claude/agent-skills/`, which Claude does not load (only `~/.claude/skills/`, where it would load
-them a second time); `agent-sync` copies it to Antigravity's skills folders from the release on.
+AgentNotes (`%USERPROFILE%\AgentNotes`, or `AGENT_NOTES_DIR`) is a local git repository, one
+commit per change, never a remote. `<project>` is the folder name of the repository's main
+checkout; worktrees share it, and `.git\agent-project` names it when two repositories share a
+folder name.
 
-`repo-workflow` was `kade-workflow` until 2026-10-09. The code graph skill (`graft-kade` until
-2026-10-09) and its bundle were removed on 2026-10-16. The
-dated records in `docs/skills/` were written in `claude-skills` and keep its paths: there,
-`skills/` is `agent-skills/` here, `scripts/` is `scripts/skills/`, `docs/` is `docs/skills/`.
+## Setup, once per PC
+
+Needs Git for Windows 2.31 or later and Node 20 or later. In PowerShell or cmd:
+
+```bat
+git clone -b local-config https://github.com/kade-agent/agent-config %USERPROFILE%\local-config
+node %USERPROFILE%\local-config\setup\install.cjs
+```
+
+It writes into `%USERPROFILE%\.claude` (and `%USERPROFILE%\.pi\agent` if Pi is installed) only
+files it installed itself; any other file in the way stops it before it writes anything. Your
+own Claude Code rules can go in `%USERPROFILE%\.claude\rules\`. For a model with a 200K window:
+`setx CLAUDE_CONTEXT_WINDOW 200000` (the default is 1M).
+
+To update: `git -C %USERPROFILE%\local-config pull`, then run `install.cjs` again.
+`install.cjs --dry-run` shows what it would change.
+
+## Setup, once per repository
+
+```bat
+node %USERPROFILE%\local-config\setup\install.cjs --repo C:\work\shop
+cd C:\work\shop
+node %USERPROFILE%\.claude\tools\agent-board.cjs config gate="gradlew.bat test"
+```
+
+`--repo` writes the LF attributes into `.git\info\attributes` and creates the project in
+AgentNotes. It reports how many files the repository already stores with CRLF: a commit that
+touches one stores it with LF, so the whole file shows as changed. `--main <branch>` names the
+main branch when it is not `main`, `master` or `develop`. Other settings: `merge=squash`,
+`subjectPattern=<regular expression>` (for example a ticket key), `phases=Beta,Release`.
+
+## agent-board
+
+`node %USERPROFILE%\.claude\tools\agent-board.cjs <command>` inside the repository (agents call
+it as `node ~/.claude/tools/agent-board.cjs` from Git Bash):
+
+| Command | Does |
+|---|---|
+| `new "<title>" [--priority P1] [--phase …]` | A task `T-NNNN`, status Backlog |
+| `set <id> status=Next priority=P2 waiting=developer …` | Changes fields; checks every value first |
+| `board`, `show <id>`, `snapshot` | The board, one task, `STATUS.md` again |
+| `start <id> [--worktree] [--no-pull]` | `git pull --ff-only` on main, branch `agent/<id>-<slug>`, the PR doc skeleton; Now |
+| `finish <id>` | The PR doc is filled, the branch has commits, the tree is clean; In review |
+| `merge <id> --author "<Name> <email>"` | Merge, the gate on the merged tree, the PR doc as message, branch removed; Done. A conflict or a failed gate merges nothing |
+| `config [key=value …]`, `init` | `project.json`; set up a repository's project |
+
+## Layout
+
+| Path | What |
+|---|---|
+| `AGENTS.md` | The rules; line 1 is the version (edit it by hand on a change) |
+| `CLAUDE.md` | `@AGENTS.md` |
+| `skills/` | `repo-workflow`, `session-resume`, `session-handoff`, `handoff-trigger` |
+| `hooks/context-guard.cjs` | The context-size warning (Claude Code only), registered from `settings.global.json` |
+| `tools/agent-board.cjs` | The Project and Board in AgentNotes |
+| `setup/install.cjs` | The installer |
+| `tests/`, `*.test.cjs` | `node --test` |
+| `.claude/CLAUDE.md` | This branch's notes for a session working on it; never installed |
 
 ## Tests
 
 ```bash
-node --test        # every *.test.cjs: hooks, release script, repository checks
+node --test
 ```
-
-## The context hook
-
-The hook assumes a 1M window (the default of Opus 4.7+, Sonnet 5+ and the Fable models). Set
-`CLAUDE_CONTEXT_WINDOW=200000` for a 200k-window model; the lines then fall to 80k and 120k.

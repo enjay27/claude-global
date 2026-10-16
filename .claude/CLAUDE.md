@@ -1,33 +1,27 @@
-# kade-agent/agent-config: this repository's own notes
+# kade-agent/agent-config, branch local-config: this branch's own notes
 
-The root `AGENTS.md` is the global rules, deployed to every machine as `~/.claude/AGENTS.md`, and
-the root `CLAUDE.md` is the one line `@AGENTS.md` that imports them, so neither holds anything
-about this repository. Claude Code reads this file as well when a session opens here;
-`deploy-exclude` and the sparse checkout keep it out of `~/.claude`.
+The root `AGENTS.md` is the local setup's global rules, installed as `~/.claude/AGENTS.md` (and
+`~/.pi/agent/AGENTS.md`) by `setup/install.cjs`; the root `CLAUDE.md` is the one line
+`@AGENTS.md`. Neither holds anything about this repository. `install.cjs` copies only the
+files it lists, so this file is never installed.
 
-## State
+## What this branch is
 
-- Current state: the organization Project "Kade Agent" (kade-agent #1), read as `STATUS.md` on
-  the `status` branch of `kade-agent/code-quality-assurance` (private):
-  `gh api repos/kade-agent/code-quality-assurance/contents/STATUS.md?ref=status --jq .content | base64 -d`
-  or, with a clone beside this one,
-  `git -C ../code-quality-assurance fetch origin status && git -C ../code-quality-assurance show origin/status:STATUS.md`.
-- Work is tracked in this repository's issues, with command labels (`cmd:status-now`,
-  `cmd:verify-not-verified`, ...) applied by the bridge in `kade-agent/.github`. A decision for
-  Kade: assign the issue to him.
-- The plan in progress is `docs/agent-migration-plan.md`; each of its steps is an issue.
+- The company line of the rules: Windows 10, local repositories, no push, no CI, local models.
+  It never merges into `main` (the GitHub setup); a fix to a shared part (`context-guard`, the
+  skills) is ported by hand in either direction.
+- Public: nothing here names a company, an internal path or a host.
 
 ## Gates
 
 | Part | Gate |
 |---|---|
-| `AGENTS.md`, `CLAUDE.md`, `hooks/`, `scripts/`, `setup/`, `settings.global.json`, `agents.json`, `deploy-exclude` | `node --test` (CI: `test.yml`) |
-| `setup/local-setup.sh` | Its tests skip on Windows: NOT VERIFIED there |
-| The rules reaching sessions | A release: a PR from `main` into `rc`, then Actions → Release on `rc` (Kade) |
-| Antigravity reading the rules and skills (`agent-sync`) | After a release, from the second Claude session start: an Antigravity IDE session answers from them (Kade, Windows) |
-| `.github/workflows/` | YAML parses; NOT VERIFIED until they have run on GitHub |
+| `AGENTS.md`, `CLAUDE.md`, `skills/`, `hooks/`, `tools/`, `setup/`, `settings.global.json` | `node --test` |
+| Windows 10: Git for Windows, cmd.exe running a gate, `%USERPROFILE%` paths | NOT VERIFIED until run on the developer's PC |
+| A local model following the rules and skills (Claude Code, Pi) | NOT VERIFIED until a session there |
 
 ## Version control
 
-- The global rules' flow: `claude/<task>` from an up-to-date `main`, one task per PR. Releases
-  are Kade's.
+- Work on this branch: `claude/<task>` from `local-config` and back into it, or commits on
+  `local-config` itself when the developer asks for that. Bump line 1 of `AGENTS.md` with any
+  change to the rules or skills.
