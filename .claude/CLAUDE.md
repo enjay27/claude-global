@@ -21,9 +21,10 @@ about this repository. Claude Code reads this file as well when a session opens 
 
 | Part | Gate |
 |---|---|
-| `AGENTS.md`, `CLAUDE.md`, `hooks/`, `scripts/`, `setup/`, `settings.global.json`, `deploy-exclude` | `node --test` (CI: `test.yml`) |
+| `AGENTS.md`, `CLAUDE.md`, `hooks/`, `scripts/`, `setup/`, `settings.global.json`, `agents.json`, `deploy-exclude` | `node --test` (CI: `test.yml`) |
 | `setup/local-setup.sh` | Its tests skip on Windows: NOT VERIFIED there |
 | The rules reaching sessions | A release: a PR from `main` into `rc`, then Actions → Release on `rc` (Kade) |
+| Antigravity reading the rules and skills (`agent-sync`) | After a release, from the second Claude session start: an Antigravity IDE session answers from them (Kade, Windows) |
 | `.github/workflows/` | YAML parses; NOT VERIFIED until they have run on GitHub |
 
 ## Version control

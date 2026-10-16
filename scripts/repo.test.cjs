@@ -12,7 +12,7 @@ const { readStamp, mergeSettings } = require("../hooks/global-sync.cjs");
 
 const ROOT = path.join(__dirname, "..");
 // Tracked but never deployed: the sparse checkout in ~/.claude leaves these out.
-const DEV_ONLY = ["setup/", "scripts/", "docs/", ".github/", ".claude/", "agent-skills/", "README.md", "deploy-exclude"];
+const DEV_ONLY = ["setup/", "scripts/", "docs/", ".github/", ".claude/", "README.md", "deploy-exclude"];
 
 function git(args, input) {
   return execFileSync("git", ["-C", ROOT, ...args], { encoding: "utf8", input, stdio: ["pipe", "pipe", "pipe"] });
@@ -67,6 +67,17 @@ test("the three setup scripts check out the same paths, AGENTS.md among them", (
     assert.deepStrictEqual(list, lists[0][1], `${name} checks out what ${lists[0][0]} does`);
   }
   assert.deepStrictEqual(excluded(["AGENTS.md", "CLAUDE.md"]), [], "deploy-exclude allows both rules files");
+});
+
+// Step 9: global-sync copies the skills and the rules link for the other agents from ~/.claude, so
+// a newly set-up machine must check out what an updated one gets from global-sync.
+test("the three setup scripts check out agents.json and agent-skills/, and the allowlist lets them in", () => {
+  for (const name of ["cloud-setup.sh", "local-setup.sh", "local-setup.ps1"]) {
+    const script = fs.readFileSync(path.join(ROOT, "setup", name), "utf8");
+    const list = /sparse-checkout set --no-cone (.+?)\s*(\\|$)/m.exec(script)[1].trim().split(/\s+/);
+    for (const p of ["/agents.json", "/agent-skills/"]) assert.ok(list.includes(p), `${name}: ${p} in the sparse-checkout list`);
+  }
+  assert.deepStrictEqual(excluded(["agents.json", "agent-skills/repo-workflow/SKILL.md"]), []);
 });
 
 test("AGENTS.md starts with a release stamp and stays within 60 lines", () => {

@@ -11,3 +11,6 @@ rules/local*.md
 !hooks/
 !hooks/**
 !settings.global.json
+!agents.json
+!agent-skills/
+!agent-skills/**

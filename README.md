@@ -10,7 +10,9 @@ the skills moved in from `kade-agent/claude-skills` with their history (step 4).
 | `AGENTS.md` | The global rules, deployed as `~/.claude/AGENTS.md`; line 1 is the release | Released by the Release workflow |
 | `CLAUDE.md` | The one line `@AGENTS.md`: Claude Code loads `~/.claude/CLAUDE.md` in every session, and it imports the rules | Deployed with them |
 | `hooks/context-guard.cjs` | Shows the context number at 300k tokens, recommends (never forces) a handoff at 400k (never later than 40% / 60% of the window), and after a compaction | User-level `UserPromptSubmit` and `SessionStart` (compact) hooks, registered from `settings.global.json`; repositories no longer vendor a copy |
-| `hooks/global-sync.cjs` | Keeps `~/.claude` on the latest release tag; prints the new rules into the session that moved | User-level `SessionStart` hook, registered from `settings.global.json` |
+| `hooks/global-sync.cjs` | Keeps `~/.claude` on the latest release tag; prints the new rules into the session that moved; then runs `agent-sync` | User-level `SessionStart` hook, registered from `settings.global.json` |
+| `hooks/agent-sync.cjs` | Keeps the other agents' copies: the one-line rules include and the skills, for each agent in `agents.json` whose folder exists; touches nothing it did not write | Called by `global-sync` on every run; no hook of its own |
+| `agents.json` | Antigravity: the rules include `~/.gemini/AGENTS.md`, the skills folders `~/.gemini/config/skills/` (IDE, app) and `~/.gemini/antigravity-cli/skills/` (CLI) | Read by `agent-sync` |
 | `settings.global.json` | The hook entries merged into `~/.claude/settings.json` (only entries pointing into `~/.claude/hooks/`) | Read by `global-sync` |
 | `deploy-exclude` | The allowlist for `~/.claude`: nothing else there can be tracked | Copied to `~/.claude/.git/info/exclude` |
 | `setup/cloud-setup.sh` | Checks this repository out into `~/.claude` in a cloud session | Pasted into the cloud environment's setup script |
@@ -18,7 +20,7 @@ the skills moved in from `kade-agent/claude-skills` with their history (step 4).
 | `.github/workflows/release.yml` | Release: on `rc`, tags `vYYYY.MM.DD` (`.2` later the same day) on a commit that stamps line 1 of `AGENTS.md`, with a GitHub release | Started by Kade (Actions → Release → Run on `rc`) after a PR from `main` into `rc` |
 | `.github/workflows/project-sync.yml` | Adds issues to the Project "Kade Agent" and applies their `cmd:` labels, through the bridge in `kade-agent/.github` | Runs on issue events |
 | `.claude/CLAUDE.md` | This repository's own notes: where its state is, its gates | Read by sessions opened here; never deployed |
-| `agent-skills/repo-workflow/` | The procedures behind the global rules for any of Kade's repositories: plan, gates, commit and PR style, state | Saved as a claude.ai account skill |
+| `agent-skills/repo-workflow/` | The procedures behind the global rules for any of Kade's repositories: plan, gates, commit and PR style, state | Saved as a claude.ai account skill; every skill here is also copied to Antigravity by `agent-sync` |
 | `agent-skills/handoff-trigger/` | When to ask about or recommend a handoff and a new session, from the context size and the next task | Account skill |
 | `agent-skills/code-graph/` | Orient in a repository with Graft's code graph (callers, blast radius) instead of exploring file by file | Account skill |
 | `agent-skills/session-resume/`, `session-handoff/` | Start a session from the recorded state; close one with a starter prompt | Account skills |
@@ -37,8 +39,9 @@ overrides of the global rules; nothing here holds repository-specific facts.
 
 Edit `agent-skills/<name>/SKILL.md` here, merge, then ask Claude to propose the updated skill and
 save it from the card. The file here is the source; the account copy follows it. Account skills
-apply in Claude Code (terminal and cloud) and Cowork sessions. `agent-skills/` is never deployed
-to `~/.claude`, where Claude would load the skills a second time.
+apply in Claude Code (terminal and cloud) and Cowork sessions. `agent-skills/` is deployed as
+`~/.claude/agent-skills/`, which Claude does not load (only `~/.claude/skills/`, where it would load
+them a second time); `agent-sync` copies it to Antigravity's skills folders from the release on.
 
 `repo-workflow` and `code-graph` were `kade-workflow` and `graft-kade` until 2026-10-09. The
 dated records in `docs/skills/` were written in `claude-skills` and keep its paths: there,
