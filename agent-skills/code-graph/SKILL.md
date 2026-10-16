@@ -55,10 +55,23 @@ Open the source only when the graph's answer is not enough.
 - Calls across languages are not tracked: GDScript calling into Rust through gdext, or JS
   calling a Tauri command through `invoke`, shows no callers. `cg` says so and prints the grep.
 
+## Verify in the source
+
+The graph narrows where to look; the source decides.
+
+- Never change code from graph output alone. Read the implementation and its tests before
+  any non-trivial change or conclusion.
+- Read the exact source whenever the change touches behaviour, persistence or migrations,
+  retries and fallbacks, error recovery, or compatibility code.
+- When the graph and the source disagree, the source wins: the graph can be stale or not
+  model that relationship (macros, reflection, signals connected by name, calls through a
+  variable).
+- An empty answer means "not indexed or not statically visible", never "does not exist".
+  Grep before saying something has no callers or no tests.
+
 ## Before a PR or merge request
 
-Run the blast radius against the default branch and put it in the PR description under a
-"Blast radius" heading:
+Run the blast radius against the default branch:
 
 ```bash
 cg impact            # or: cg impact --base origin/<branch>
@@ -66,9 +79,21 @@ cg impact            # or: cg impact --base origin/<branch>
 
 It prints the blast radius, the risk score with untested changed functions, and the code
 reached outside the changed files. For each changed function with a `?` caller or several
-definitions, `git grep` its name and add the call sites it finds. If it reaches areas the
-change was not meant to touch, raise that with Kade before opening the PR. This follows
-`repo-workflow`'s gates and does not replace them.
+definitions, `git grep` its name and add the call sites it finds. Then put this in the PR
+description:
+
+```markdown
+## Blast radius
+
+- Risk: low / medium / high (cg's risk score, and why if you disagree)
+- Reach: <n> files and <m> functions outside the change, by area; "nothing" if none
+- Tests: <covered> of <changed> changed functions have a test reaching them
+- Missing tests: <function> in <file>, one line each (or why none is needed)
+- Found by grep: call sites the graph missed (`?` callers, shared names, other languages)
+```
+
+If it reaches areas the change was not meant to touch, raise that with Kade before opening
+the PR. This follows `repo-workflow`'s gates and does not replace them.
 
 ## Leftover Graft wiring
 
