@@ -14,7 +14,7 @@ procedures behind them. When to recommend a handoff from the context size is the
 
 ## 1. Plan before editing
 
-- Locate the code first (graft if the repo has it, otherwise search), then present an impact
+- Locate the code first (the `code-graph` skill, otherwise search), then present an impact
   analysis: which files change, what logic changes, what does not, which gate applies, and
   whether this session can run that gate.
 - **Read another repository at its `origin/main`**, fetched first (`git fetch origin main`),
