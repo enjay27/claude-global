@@ -215,3 +215,14 @@ test("every skill in agent-skills/ has front matter naming its folder and a desc
     assert.match(front[1], /^description: "?[^\s"]/m, `${name}: description must not be empty`);
   }
 });
+
+// Releases follow one global skill in every repository (Kade, 2026-10-18): a version PR into main, a
+// PR from main into rc that the agent opens, then Kade's manual Release run on rc. The rules must send
+// every release there, and the skill must exist, so no repository needs its own release text.
+test("AGENTS.md sends every release to the release-flow skill, and the skill exists", () => {
+  const rules = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
+  const precedence = /## Precedence\n([^]*?)\n## /.exec(rules)[1].replace(/\s+/g, " ");
+  assert.match(precedence, /`release-flow` for every release/, "the Precedence section names release-flow");
+  assert.ok(fs.existsSync(path.join(ROOT, "agent-skills", "release-flow", "SKILL.md")),
+    "agent-skills/release-flow/SKILL.md exists");
+});
