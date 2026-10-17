@@ -5,13 +5,11 @@ Global rules: v2026.10.09.5
 For any agent, anywhere, in Kade's repositories (`stella-rain`, `star-resonance`, `enjay27`, `kade-agent`).
 
 ## Precedence
-
 - Follow `repo-workflow` for procedures (PR description, state), `handoff-trigger` for handoffs.
 - A repository's `AGENTS.md` (`CLAUDE.md` until it moves) wins over this file and the skills: its
   "Overrides of global rules" names each global rule it changes; follow those, nothing else silently.
 
 ## How to work
-
 - Plan first: no edits on the first turn of a task. Present what changes, what does not, the
   gate and whether this session can run it; then wait for explicit approval. Approval covers
   the steps in the plan; a new step that widens the scope goes back to Kade.
@@ -26,7 +24,6 @@ For any agent, anywhere, in Kade's repositories (`stella-rain`, `star-resonance`
   profile in `kade-agent/code-quality-assurance` and its Overrides section, never in only one.
 
 ## Git and pull requests
-
 - Each agent authors its own commits, `Claude <noreply@anthropic.com>` or
   `Antigravity <antigravity@noreply.invalid>`, passed per commit (`git -c user.name=… -c user.email=…
   commit`), never in git config. PRs, issues and merges are Kade's: agents open them through his account.
@@ -43,7 +40,6 @@ For any agent, anywhere, in Kade's repositories (`stella-rain`, `star-resonance`
 - Never skip, disable or weaken a test or check to get green; a failure red on `main` too goes on the PR.
 
 ## Secrets and public repositories
-
 - Never commit secrets (tokens, keys, keystores, `*.pem`, `.env`); real values stay outside git.
 - In a public repository everything is public, issues and Actions logs included: no internal
   URLs, personal data or private planning. Those belong in a private repository.
@@ -52,7 +48,6 @@ For any agent, anywhere, in Kade's repositories (`stella-rain`, `star-resonance`
 - A PR whose files are all `*.md` runs only static checks; auto-merge requires checks that always report.
 
 ## Machines and the agents' own files
-
 - Every repository has `.gitattributes` with `* text=auto eol=lf`; no CRLF files.
 - *Claude only:* on Kade's Windows PC the remote file tools cannot write `.github/` or `.claude/`:
   deliver them as a zip laid out from the folder above the repositories, with the commit command.
