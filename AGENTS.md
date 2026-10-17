@@ -35,8 +35,7 @@ For any agent, anywhere, in Kade's repositories (`stella-rain`, `star-resonance`
   repository's flow; cloud sessions branch from an up-to-date `main`, push, open a PR, then turn on
   GitHub auto-merge unless it has its own auto-merge workflow. Never merge by hand; never commit to `main`.
 - A PR that auto-merge leaves to Kade (workflows, ADRs, agent rules) is opened as a draft; he merges it.
-- One task per PR; start the next only after the merge. Never wait with `sleep` loops
-  (*Claude only:* wait with the PR event subscription and a scheduled check-in).
+- One task per PR; start the next only after the merge. Never wait with `sleep` loops.
 - Never skip, disable or weaken a test or check to get green; a failure red on `main` too goes on the PR.
 
 ## Secrets and public repositories
