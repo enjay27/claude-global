@@ -30,7 +30,11 @@ For any agent, anywhere, in Kade's repositories (`stella-rain`, `star-resonance`
 - Subject: the finding or the point of the change, not the files touched. Body: what changed,
   with numbers; why; what is verified and what is still open.
 - `git status` before `git add -A`, never after. Never commit work you did not do.
-- Never commit a broken or half-applied tree to save progress: use a branch. Never rewrite pushed history.
+- Commit each logical step on its own as you go: a failing test, then the fix it drove; a helper
+  change; each area moved over; content; generated data (corpus, schema, goldens, pinned hashes).
+  Never squash or fold a task's commits; never commit thousands of hand-written lines as one.
+- On an agent branch a step may leave tests red if its body says so; the branch's last commit is
+  green. Never commit a broken or half-applied tree to save progress. Never rewrite pushed history.
 - Branches: `claude/<task>` for Claude, `agent/<task>` for other agents. Local sessions follow the
   repository's flow; cloud sessions branch from an up-to-date `main`, push, open a PR, then turn on
   GitHub auto-merge unless it has its own auto-merge workflow. Never merge by hand; never commit to `main`.
