@@ -220,9 +220,9 @@ test("every skill in agent-skills/ has front matter naming its folder and a desc
 // PR from main into rc that the agent opens, then Kade's manual Release run on rc. The rules must send
 // every release there, and the skill must exist, so no repository needs its own release text.
 test("AGENTS.md sends every release to the release-flow skill, and the skill exists", () => {
-  const precedence = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8").split("\n")
-    .find((l) => l.includes("repo-workflow"));
-  assert.match(precedence, /`release-flow` for every release/, "the Precedence line names release-flow");
+  const rules = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
+  const precedence = /## Precedence\n([^]*?)\n## /.exec(rules)[1].replace(/\s+/g, " ");
+  assert.match(precedence, /`release-flow` for every release/, "the Precedence section names release-flow");
   assert.ok(fs.existsSync(path.join(ROOT, "agent-skills", "release-flow", "SKILL.md")),
     "agent-skills/release-flow/SKILL.md exists");
 });
